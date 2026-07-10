@@ -1,0 +1,1733 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>TAIBATSU ─ 鬼教師 2G JONES</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+html,body{height:100%;background:#020308;color:#cfc8b4;font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP","MS Mincho",serif;overflow:hidden}
+button{font-family:inherit;cursor:pointer}
+#app{position:fixed;inset:0;max-width:640px;margin:0 auto;display:flex;flex-direction:column;background:#05070d;box-shadow:0 0 80px #000 inset}
+
+/* ===== topbar ===== */
+#topbar{display:flex;align-items:center;gap:10px;padding:6px 10px;background:linear-gradient(#0d1220,#080b14);border-bottom:1px solid #1c2438;font-size:13px;min-height:36px;z-index:30}
+#tb-igen{color:#e8c76a;text-shadow:0 0 8px rgba(232,199,106,.5);white-space:nowrap}
+#tb-candles{letter-spacing:2px}
+#tb-area{flex:1;text-align:center;color:#7f8aa5;font-size:11px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#tb-deckbtn{background:#141a2c;border:1px solid #2a3450;color:#cfc8b4;font-size:11px;padding:3px 10px;border-radius:4px}
+#tb-deckbtn:active{background:#1d2740}
+
+/* ===== screens ===== */
+#screens{flex:1;position:relative;overflow:hidden}
+.screen{position:absolute;inset:0;display:none;flex-direction:column;overflow:hidden}
+.screen.active{display:flex}
+
+/* ===== title ===== */
+#screen-title{align-items:center;justify-content:center;text-align:center;background:radial-gradient(ellipse at 50% 90%,#1a1408 0%,#0a0b12 45%,#03040a 100%)}
+#title-candle{font-size:34px;animation:flick 2.3s infinite}
+#title-main{font-size:44px;letter-spacing:10px;color:#b8a878;text-shadow:0 0 24px rgba(200,160,60,.35),0 2px 2px #000;margin:10px 0 2px}
+#title-sub{font-size:15px;color:#6d7690;letter-spacing:4px;margin-bottom:6px}
+#title-name{font-size:13px;color:#8d3a3a;letter-spacing:2px;margin-bottom:34px}
+.tbtn{display:block;width:230px;margin:8px auto;padding:12px;background:linear-gradient(#151b2d,#0e1322);border:1px solid #33405f;color:#cfc8b4;font-size:15px;letter-spacing:3px;border-radius:4px;transition:.15s}
+.tbtn:hover,.tbtn:active{border-color:#c8a44a;color:#e8dcc0;box-shadow:0 0 14px rgba(200,164,74,.25)}
+.tbtn:disabled{opacity:.35;pointer-events:none}
+#title-igen{margin-top:26px;font-size:12px;color:#8a7a4f}
+@keyframes flick{0%,100%{opacity:1;transform:scale(1)}45%{opacity:.75;transform:scale(.97) rotate(-2deg)}70%{opacity:.9;transform:scale(1.02)}}
+
+/* ===== story ===== */
+#screen-story{background:#03040a;justify-content:flex-end}
+#story-bg{position:absolute;inset:0;transition:background 1s}
+#story-vig{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 45%,transparent 0%,rgba(0,0,0,.88) 90%);pointer-events:none}
+#story-port{position:absolute;left:50%;top:34%;transform:translate(-50%,-50%);width:150px;height:150px;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 0 22px rgba(0,0,0,.9))}
+#story-port .bigmoji{font-size:96px;filter:brightness(.82) sepia(.2)}
+#story-box{position:relative;margin:0 12px 26px;background:rgba(8,10,18,.93);border:1px solid #2a3450;border-radius:6px;padding:14px 16px 34px;min-height:120px;cursor:pointer}
+#story-speaker{color:#c8a44a;font-size:13px;letter-spacing:2px;margin-bottom:8px}
+#story-text{font-size:15px;line-height:1.85;white-space:pre-wrap}
+#story-hint{position:absolute;right:14px;bottom:8px;font-size:11px;color:#5b6684;animation:flick 1.6s infinite}
+#story-skip{position:absolute;top:10px;right:10px;background:rgba(10,14,26,.8);border:1px solid #2a3450;color:#7f8aa5;font-size:11px;padding:5px 12px;border-radius:4px;z-index:5}
+
+/* ===== map ===== */
+#screen-map{background:linear-gradient(180deg,#04050c 0%,#080d1c 55%,#04050c 100%)}
+#map-head{text-align:center;padding:12px 8px 4px}
+#map-floor{font-size:18px;letter-spacing:5px;color:#9aa5c2;text-shadow:0 0 12px rgba(120,140,200,.3)}
+#map-floor-sub{font-size:11px;color:#5b6684;margin-top:3px;letter-spacing:2px}
+#map-scroll{flex:1;overflow-y:auto;padding:18px 0 30px;position:relative}
+#map-corridor{position:relative;width:min(86%,420px);margin:0 auto;display:flex;flex-direction:column-reverse;gap:34px;padding:10px 0}
+#map-corridor::before{content:"";position:absolute;left:50%;top:0;bottom:0;width:34px;transform:translateX(-50%);background:linear-gradient(90deg,transparent,rgba(60,75,120,.16) 20%,rgba(60,75,120,.16) 80%,transparent);border-left:1px dashed #232d48;border-right:1px dashed #232d48}
+.map-step{display:flex;justify-content:center;gap:56px;position:relative;z-index:2}
+.map-node{width:86px;padding:8px 4px 7px;background:linear-gradient(#141a2b,#0c101d);border:1px solid #2a3450;border-radius:6px;text-align:center;position:relative;transition:.2s;cursor:default}
+.map-node .mn-icon{font-size:24px;display:block;filter:grayscale(.5) brightness(.75)}
+.map-node .mn-label{font-size:10px;color:#7f8aa5;display:block;margin-top:4px;letter-spacing:1px}
+.map-node.done{opacity:.32}
+.map-node.avail{cursor:pointer;border-color:#c8a44a;box-shadow:0 0 16px rgba(216,160,60,.30);animation:nodeglow 2s infinite}
+.map-node.avail .mn-icon{filter:none}
+.map-node.avail::after{content:"🕯";position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-size:12px;animation:flick 2s infinite}
+.map-node.locked{opacity:.55}
+.map-node.boss-node{width:120px;padding:12px 6px;background:linear-gradient(#241a10,#120c08);border:2px solid #6a4a22}
+.map-node.boss-node .mn-icon{font-size:32px}
+.map-node.boss-node.avail{border-color:#e0a030;box-shadow:0 0 26px rgba(224,140,30,.5)}
+.map-node.dojo-node{background:linear-gradient(#101a24,#0a0f16);border-color:#2c5a66}
+.map-you{position:absolute;left:50%;transform:translateX(-50%);bottom:-24px;font-size:11px;color:#c8a44a;white-space:nowrap;letter-spacing:1px}
+@keyframes nodeglow{0%,100%{box-shadow:0 0 12px rgba(216,160,60,.25)}50%{box-shadow:0 0 22px rgba(216,160,60,.5)}}
+.map-branch-label{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:9px;color:#5b6684;white-space:nowrap}
+
+/* ===== battle ===== */
+#screen-battle{background:#05070d}
+#screen-battle.bg1 #b-bgart{background:radial-gradient(ellipse at 50% 20%,#141c30 0%,#070a14 60%),linear-gradient(#0a0e1a,#05070d)}
+#screen-battle.bg2 #b-bgart{background:radial-gradient(ellipse at 30% 15%,#10241e 0%,#070a14 60%),linear-gradient(#0a121a,#05070d)}
+#screen-battle.bg3 #b-bgart{background:radial-gradient(ellipse at 50% 15%,#241a10 0%,#0a0710 60%),linear-gradient(#120c14,#05070d)}
+#screen-battle.bg4 #b-bgart{background:radial-gradient(ellipse at 70% 10%,#16202e 0%,#05070d 65%),linear-gradient(#0a0e16,#04060a)}
+#b-bgart{position:absolute;inset:0}
+#b-bgart::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 50% 60%,transparent 30%,rgba(0,0,0,.72) 100%)}
+#screen-battle.awakened #b-bgart::after{background:radial-gradient(ellipse at 50% 60%,rgba(120,10,10,.10) 30%,rgba(20,0,0,.8) 100%)}
+#b-wrap{position:relative;flex:1;display:flex;flex-direction:column;z-index:2;min-height:0}
+
+#b-top{display:flex;align-items:flex-start;gap:8px;padding:6px 10px 2px;min-height:64px}
+#b-eport{width:52px;height:52px;flex:none;border-radius:50%;background:radial-gradient(#1a2136,#0a0d18);border:1px solid #33405f;display:flex;align-items:center;justify-content:center;font-size:30px;filter:saturate(.7) brightness(.85);box-shadow:0 0 14px rgba(0,0,0,.8)}
+#b-einfo{flex:1;min-width:0}
+#b-ename{font-size:13px;color:#b8aa86;letter-spacing:1px}
+#b-especial{font-size:10px;color:#8d5a5a;margin-top:1px}
+#b-ebubble{font-size:11px;color:#9aa5c2;font-style:italic;margin-top:3px;line-height:1.5;min-height:16px;opacity:.9}
+#b-counters{font-size:10px;color:#c86a5a;margin-top:2px;letter-spacing:1px;min-height:12px}
+
+/* scale */
+#b-scalebox{padding:2px 10px 4px;text-align:center}
+#b-scale{position:relative;height:44px;width:min(320px,80%);margin:0 auto}
+#b-beam{position:absolute;left:0;right:0;top:16px;height:5px;background:linear-gradient(#7a6538,#4a3c1c);border-radius:3px;transition:transform .6s cubic-bezier(.3,1.4,.5,1);box-shadow:0 2px 6px #000}
+#b-beam::before,#b-beam::after{position:absolute;top:-16px;font-size:17px;filter:drop-shadow(0 6px 4px rgba(0,0,0,.7))}
+#b-beam::before{content:"💀";left:-4px}
+#b-beam::after{content:"📖";right:-4px}
+#b-pivot{position:absolute;left:50%;top:18px;transform:translateX(-50%);width:0;height:0;border-left:9px solid transparent;border-right:9px solid transparent;border-bottom:18px solid #3a3324}
+#b-scalenum{font-size:10px;color:#7f8aa5;margin-top:0px;letter-spacing:1px}
+
+/* board */
+#b-board{padding:2px 8px;display:flex;flex-direction:column;gap:6px}
+.slots{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.slot{position:relative;height:92px;border:1px dashed #26304c;border-radius:6px;background:rgba(10,14,26,.45);transition:.15s;display:flex;align-items:center;justify-content:center}
+.slot.droppable{border-color:#c8a44a;background:rgba(200,164,74,.10);cursor:pointer;box-shadow:0 0 10px rgba(200,164,74,.2) inset}
+.slot.targetable{border-color:#c85a4a;background:rgba(200,90,74,.12);cursor:pointer}
+.slot .unit{width:100%;height:100%}
+
+/* unit card on board */
+.unit{position:relative;background:linear-gradient(#1d1812,#120e0a);border:1px solid #5a4a33;border-radius:6px;padding:3px 3px 2px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;font-size:10px;transition:transform .18s}
+.unit.enemy-unit{background:linear-gradient(#161221,#0d0a16);border-color:#4a3a5f}
+.unit .u-icon{font-size:22px;line-height:1.2;filter:saturate(.75)}
+.unit .u-name{font-size:9px;line-height:1.15;text-align:center;color:#cfc8b4;overflow:hidden;max-height:22px}
+.unit .u-stats{display:flex;gap:8px;font-size:11px;font-weight:bold}
+.unit .u-atk{color:#e0956a}.unit .u-hp{color:#8fbf7f}
+.unit .u-badges{position:absolute;top:-6px;right:-4px;font-size:10px}
+.unit.stunned{filter:grayscale(1) brightness(.6)}
+.unit.stunned::after{content:"💫";position:absolute;top:-7px;left:-5px;font-size:13px}
+.unit.atk-up{transform:translateY(-16px) scale(1.06)}
+.unit.atk-down{transform:translateY(16px) scale(1.06)}
+.unit.hitflash{animation:hitflash .3s}
+.unit.dying{animation:dying .4s forwards}
+.unit.guard-unit{border-color:#b09030;box-shadow:0 0 10px rgba(190,150,40,.3)}
+@keyframes hitflash{0%{filter:brightness(3) saturate(0)}100%{filter:none}}
+@keyframes dying{to{opacity:0;transform:scale(.6) rotate(8deg)}}
+
+/* floating popup text */
+.fpop{position:absolute;left:50%;top:30%;transform:translateX(-50%);color:#f0d090;font-size:12px;white-space:nowrap;pointer-events:none;text-shadow:0 0 6px #000,0 2px 2px #000;animation:fpop 1s forwards;z-index:40}
+@keyframes fpop{0%{opacity:0;transform:translate(-50%,6px)}15%{opacity:1}80%{opacity:1;transform:translate(-50%,-14px)}100%{opacity:0;transform:translate(-50%,-22px)}}
+
+#b-msg{text-align:center;font-size:11px;color:#8a93ad;min-height:16px;padding:1px 12px;line-height:1.5}
+
+/* bottom: jones + hand + controls */
+#b-bottom{margin-top:auto;padding:4px 8px 8px;background:linear-gradient(transparent,rgba(4,6,12,.9) 30%)}
+#b-hud{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+#b-jones{width:46px;height:46px;flex:none;border-radius:50%;overflow:hidden;border:1px solid #33405f;background:#0a0d18;box-shadow:0 0 10px #000}
+#b-jones svg{width:100%;height:100%}
+#screen-battle.awakened #b-jones{border-color:#c0392b;box-shadow:0 0 14px rgba(220,60,40,.6);animation:awpulse 1.4s infinite}
+@keyframes awpulse{50%{box-shadow:0 0 22px rgba(220,60,40,.9)}}
+#b-instinct{font-size:10px;color:#c86a5a;letter-spacing:1px}
+#b-energy{font-size:12px;color:#e8c76a;letter-spacing:1px}
+#b-deckn{font-size:10px;color:#7f8aa5}
+#b-bell{margin-left:auto;background:linear-gradient(#3a2c14,#241a0c);border:1px solid #7a6538;color:#e8dcc0;font-size:13px;padding:8px 16px;border-radius:6px;letter-spacing:2px;box-shadow:0 2px 8px #000}
+#b-bell:active{transform:translateY(1px)}
+#b-bell:disabled{opacity:.4;pointer-events:none}
+#b-hand{display:flex;gap:6px;overflow-x:auto;padding:6px 2px 2px;min-height:104px;align-items:flex-end;scrollbar-width:thin}
+
+/* hand card */
+.card{flex:none;width:78px;height:104px;background:linear-gradient(#211b13,#15100b);border:1px solid #5a4a33;border-radius:6px;padding:3px 4px;display:flex;flex-direction:column;position:relative;cursor:pointer;transition:transform .15s,box-shadow .15s;font-size:10px}
+.card.support-card{background:linear-gradient(#151d22,#0e1418);border-color:#33505a}
+.card .c-cost{position:absolute;top:-6px;left:-5px;width:18px;height:18px;border-radius:50%;background:radial-gradient(#e8c76a,#8a6d20);color:#1a1204;font-size:11px;font-weight:bold;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px #000}
+.card .c-icon{font-size:23px;text-align:center;margin-top:4px;filter:saturate(.8)}
+.card .c-name{font-size:9.5px;text-align:center;color:#e0d8c0;line-height:1.2;margin-top:1px}
+.card .c-desc{font-size:8px;color:#9a917c;text-align:center;line-height:1.25;margin-top:auto;margin-bottom:2px;overflow:hidden}
+.card .c-stats{display:flex;justify-content:space-between;font-size:11px;font-weight:bold;padding:0 4px}
+.card .c-stats .u-atk{color:#e0956a}.card .c-stats .u-hp{color:#8fbf7f}
+.card.selected{transform:translateY(-12px);box-shadow:0 0 14px rgba(200,164,74,.5);border-color:#c8a44a}
+.card.unaffordable{opacity:.45}
+.card.big{width:104px;height:142px;font-size:11px}
+.card.big .c-icon{font-size:32px;margin-top:8px}
+.card.big .c-name{font-size:11px}
+.card.big .c-desc{font-size:9px}
+.card.rare-card{box-shadow:0 0 10px rgba(200,120,220,.25);border-color:#7a5a8a}
+
+/* ===== banner ===== */
+#banner{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.78);z-index:60;flex-direction:column;text-align:center;padding:20px}
+#banner.show{display:flex;animation:bannerin .4s}
+#banner-main{font-size:30px;letter-spacing:8px;color:#e0c080;text-shadow:0 0 26px rgba(220,170,60,.5)}
+#banner-sub{font-size:12px;color:#8a93ad;margin-top:14px;line-height:1.9;white-space:pre-wrap}
+#banner.red #banner-main{color:#d05040;text-shadow:0 0 26px rgba(220,60,40,.6)}
+@keyframes bannerin{from{opacity:0}to{opacity:1}}
+
+/* ===== generic choice/reward ===== */
+#screen-choice{background:radial-gradient(ellipse at 50% 30%,#10141f 0%,#04050b 75%);align-items:center;padding:18px 12px;overflow-y:auto}
+#choice-title{font-size:18px;letter-spacing:4px;color:#c8b478;margin:14px 0 4px;text-align:center}
+#choice-desc{font-size:12px;color:#8a93ad;margin-bottom:16px;text-align:center;line-height:1.7;white-space:pre-wrap}
+#choice-cards{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:16px}
+#choice-cards .card:hover,#choice-cards .card:active{transform:translateY(-8px);border-color:#c8a44a}
+#choice-list{display:flex;flex-direction:column;gap:8px;width:min(94%,380px)}
+.choice-btn{background:linear-gradient(#151b2d,#0e1322);border:1px solid #33405f;color:#cfc8b4;padding:11px 12px;border-radius:5px;font-size:13px;text-align:left;line-height:1.5}
+.choice-btn small{display:block;color:#7f8aa5;font-size:10px;margin-top:3px}
+.choice-btn:hover,.choice-btn:active{border-color:#c8a44a}
+.choice-btn:disabled{opacity:.4;pointer-events:none}
+
+/* ===== shop ===== */
+#screen-shop{background:radial-gradient(ellipse at 50% 0%,#1a1410 0%,#05060c 70%);overflow-y:auto;align-items:center;padding:14px 10px}
+#shop-head{text-align:center;margin-bottom:8px}
+#shop-face{font-size:44px;filter:sepia(.4) brightness(.8)}
+#shop-name{font-size:14px;color:#c8b478;letter-spacing:2px;margin-top:2px}
+#shop-quote{font-size:11px;color:#9a917c;font-style:italic;margin:6px 0 10px;line-height:1.6;min-height:30px;max-width:340px}
+#shop-items{display:flex;flex-direction:column;gap:8px;width:min(96%,400px)}
+.shop-item{display:flex;align-items:center;gap:10px;background:rgba(20,18,12,.7);border:1px solid #4a3c26;border-radius:6px;padding:8px 10px}
+.shop-item .si-icon{font-size:26px;flex:none;width:34px;text-align:center}
+.shop-item .si-body{flex:1;min-width:0}
+.shop-item .si-name{font-size:12px;color:#e0d8c0}
+.shop-item .si-desc{font-size:10px;color:#8a8270;line-height:1.4}
+.shop-item .si-buy{flex:none;background:#241c0c;border:1px solid #7a6538;color:#e8c76a;font-size:12px;padding:7px 10px;border-radius:5px;white-space:nowrap}
+.shop-item .si-buy:disabled{opacity:.4;pointer-events:none}
+.shop-item.soldout{opacity:.4}
+#shop-leave{margin:16px 0 10px}
+
+/* ===== event ===== */
+#screen-event{background:radial-gradient(ellipse at 50% 20%,#0e1420 0%,#04050b 75%);align-items:center;justify-content:center;padding:16px}
+#event-box{width:min(96%,400px);background:rgba(8,10,18,.95);border:1px solid #2a3450;border-radius:8px;padding:18px 16px;text-align:center}
+#event-icon{font-size:44px;filter:saturate(.7) brightness(.85)}
+#event-title{font-size:16px;color:#c8b478;letter-spacing:3px;margin:8px 0}
+#event-text{font-size:12.5px;color:#aab2c8;line-height:1.9;margin-bottom:16px;white-space:pre-wrap;text-align:left}
+#event-choices{display:flex;flex-direction:column;gap:8px}
+
+/* ===== deck overlay ===== */
+#overlay-deck{position:absolute;inset:0;background:rgba(2,3,8,.94);z-index:70;display:none;flex-direction:column;padding:14px}
+#overlay-deck.show{display:flex}
+#od-title{text-align:center;font-size:15px;letter-spacing:3px;color:#c8b478;margin-bottom:10px}
+#od-cards{flex:1;overflow-y:auto;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-content:flex-start;padding-bottom:10px}
+#od-close{align-self:center;width:160px}
+
+/* ===== gameover / misc ===== */
+#screen-over{background:radial-gradient(ellipse at 50% 40%,#140a0a 0%,#030307 75%);align-items:center;justify-content:center;text-align:center;padding:20px}
+#over-main{font-size:26px;letter-spacing:6px;color:#a04030;text-shadow:0 0 20px rgba(160,40,20,.5)}
+#over-sub{font-size:12px;color:#8a93ad;margin:18px 0 26px;line-height:2;white-space:pre-wrap}
+
+.candle-lit{color:#f0b040;text-shadow:0 0 8px rgba(240,170,40,.8);animation:flick 2s infinite}
+.candle-out{opacity:.25;filter:grayscale(1)}
+
+/* awaken jones eyes */
+.jones-eye{fill:#2a2118}
+.awk .jones-eye{fill:#ff2010}
+.awk .jones-band{display:block!important}
+
+@media (max-height:640px){
+ .slot{height:76px}
+ .card{width:70px;height:94px}
+ #b-hand{min-height:96px}
+ #b-top{min-height:52px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="topbar">
+    <span id="tb-igen">威厳 0</span>
+    <span id="tb-candles"></span>
+    <span id="tb-area"></span>
+    <button id="tb-deckbtn" onclick="openDeck()">デッキ</button>
+  </div>
+  <div id="screens">
+
+    <div id="screen-title" class="screen">
+      <div id="title-candle">🕯</div>
+      <div id="title-main">TAIBATSU</div>
+      <div id="title-sub">─ 夜の学校のカード遊戯 ─</div>
+      <div id="title-name">伝説の鬼教師 2G JONES</div>
+      <button class="tbtn" id="btn-start" onclick="titleStart(false)">はじめから</button>
+      <button class="tbtn" id="btn-skip" onclick="titleStart(true)" style="display:none">プロローグをスキップして開始</button>
+      <button class="tbtn" id="btn-wipe" onclick="wipeSave()" style="font-size:11px;width:180px;padding:8px">セーブデータ消去</button>
+      <div id="title-igen"></div>
+    </div>
+
+    <div id="screen-story" class="screen">
+      <div id="story-bg"></div>
+      <div id="story-vig"></div>
+      <div id="story-port"></div>
+      <button id="story-skip" onclick="storySkip()" style="display:none">スキップ ≫</button>
+      <div id="story-box" onclick="storyNext()">
+        <div id="story-speaker"></div>
+        <div id="story-text"></div>
+        <div id="story-hint">▼ タップで進む</div>
+      </div>
+    </div>
+
+    <div id="screen-map" class="screen">
+      <div id="map-head">
+        <div id="map-floor"></div>
+        <div id="map-floor-sub"></div>
+      </div>
+      <div id="map-scroll"><div id="map-corridor"></div></div>
+    </div>
+
+    <div id="screen-battle" class="screen">
+      <div id="b-bgart"></div>
+      <div id="b-wrap">
+        <div id="b-top">
+          <div id="b-eport"></div>
+          <div id="b-einfo">
+            <div id="b-ename"></div>
+            <div id="b-especial"></div>
+            <div id="b-ebubble"></div>
+            <div id="b-counters"></div>
+          </div>
+        </div>
+        <div id="b-scalebox">
+          <div id="b-scale"><div id="b-beam"></div><div id="b-pivot"></div></div>
+          <div id="b-scalenum"></div>
+        </div>
+        <div id="b-board">
+          <div id="e-slots" class="slots"></div>
+          <div id="p-slots" class="slots"></div>
+        </div>
+        <div id="b-msg"></div>
+        <div id="b-bottom">
+          <div id="b-hud">
+            <div id="b-jones"></div>
+            <div>
+              <div id="b-energy"></div>
+              <div id="b-instinct"></div>
+              <div id="b-deckn"></div>
+            </div>
+            <button id="b-bell" onclick="ringBell()">🔔 授業終了</button>
+          </div>
+          <div id="b-hand"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="screen-choice" class="screen">
+      <div id="choice-title"></div>
+      <div id="choice-desc"></div>
+      <div id="choice-cards"></div>
+      <div id="choice-list"></div>
+    </div>
+
+    <div id="screen-shop" class="screen">
+      <div id="shop-head">
+        <div id="shop-face">👵</div>
+        <div id="shop-name">購買のおばちゃん(裏の顔)</div>
+        <div id="shop-quote"></div>
+      </div>
+      <div id="shop-items"></div>
+      <button class="tbtn" id="shop-leave" onclick="leaveShop()">職員室を出る</button>
+    </div>
+
+    <div id="screen-event" class="screen">
+      <div id="event-box">
+        <div id="event-icon"></div>
+        <div id="event-title"></div>
+        <div id="event-text"></div>
+        <div id="event-choices"></div>
+      </div>
+    </div>
+
+    <div id="screen-over" class="screen">
+      <div id="over-main"></div>
+      <div id="over-sub"></div>
+      <button class="tbtn" onclick="toTitle()">職員室(タイトル)へ戻る</button>
+    </div>
+
+  </div>
+
+  <div id="overlay-deck">
+    <div id="od-title">生徒指導ファイル(デッキ)</div>
+    <div id="od-cards"></div>
+    <button class="tbtn" id="od-close" onclick="closeDeck()">閉じる</button>
+  </div>
+
+  <div id="banner"><div id="banner-main"></div><div id="banner-sub"></div></div>
+</div>
+
+<script>
+"use strict";
+/* =========================================================
+   TAIBATSU — Inscryption-like roguelike card battler
+   ========================================================= */
+
+const $ = id => document.getElementById(id);
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+const rnd = a => a[Math.floor(Math.random()*a.length)];
+const shuffle = a => { a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
+let uidc = 1;
+
+/* ---------- persistent save ---------- */
+const SAVE_KEY = "taibatsu_2gjones_v1";
+let save = { igen:0, prologueDone:false, cleared:false, trueCleared:false, wins:0 };
+function loadSave(){ try{ const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(s) save=Object.assign(save,s);}catch(e){} }
+function commitSave(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }catch(e){} }
+function addIgen(n){ save.igen=Math.max(0,save.igen+n); commitSave(); updateTopbar(); }
+function wipeSave(){ if(confirm("威厳ポイントを含む全データを消去します。よろしいですか?")){ localStorage.removeItem(SAVE_KEY); location.reload(); } }
+
+/* ---------- ability texts ---------- */
+const AB_TEXT = {
+  haste:"速攻", sweep:"薙ぎ払い", snipe:"狙撃", double:"連撃",
+  counter:"返り討ち", rally:"連帯", energize:"学級運営", trample:"貫通", guard:"忖度"
+};
+const AB_DESC = {
+  haste:"出したターンに即攻撃", sweep:"正面と両隣のレーンを攻撃", snipe:"最も体力の低い敵を狙う",
+  double:"1ターンに2回攻撃", counter:"攻撃してきた敵に2ダメージ", rally:"味方が場に出るたび攻撃+1",
+  energize:"毎ターン気合+1", trample:"余剰ダメージを相手本体へ", guard:"本体への攻撃を肩代わりする"
+};
+
+/* ---------- player cards ----------
+ kind: u=unit s=spell / tb: 体罰カードか / r: 0=common 1=uncommon 2=rare */
+const CARDS = {
+  binta:    {n:"愛のビンタ", cost:1, kind:"u", tb:1, atk:2, hp:1, ab:["haste"], icon:"✋", r:0, fl:"「痛みは一瞬、愛は一生だ」"},
+  genkotsu: {n:"拳骨",       cost:1, kind:"u", tb:1, atk:1, hp:2, ab:[],        icon:"👊", r:0, fl:"頭蓋に響く、昭和の鐘の音。"},
+  kokuban:  {n:"黒板消しトラップ", cost:1, kind:"u", tb:1, atk:1, hp:1, ab:["counter"], icon:"🧽", r:0, fl:"扉の上で、じっと待っている。"},
+  harisen:  {n:"ハリセン一閃", cost:2, kind:"u", tb:1, atk:1, hp:2, ab:["sweep"], icon:"📄", r:1, fl:"乾いた音が廊下まで届いた。"},
+  chalk:    {n:"チョークスナイプ", cost:2, kind:"u", tb:1, atk:2, hp:1, ab:["snipe"], icon:"🖍", r:1, fl:"居眠りの後頭部へ、正確無比。"},
+  shusseki: {n:"出席簿の角",  cost:2, kind:"u", tb:1, atk:2, hp:2, ab:[],        icon:"📕", r:0, fl:"角で叩くのが、礼儀だった。"},
+  mop:      {n:"モップ剣術",  cost:2, kind:"u", tb:1, atk:2, hp:3, ab:[],        icon:"🧹", r:0, fl:"掃除の時間は、修行の時間。"},
+  rentai:   {n:"連帯責任",    cost:2, kind:"u", tb:1, atk:1, hp:3, ab:["rally"], icon:"🔗", r:1, fl:"「一人の失敗は、全員の失敗だ」"},
+  ohuku:    {n:"往復ビンタ",  cost:3, kind:"u", tb:1, atk:2, hp:2, ab:["double"], icon:"🖐", r:1, fl:"右で愛、左で情。"},
+  shinai:   {n:"竹刀の素振り", cost:3, kind:"u", tb:1, atk:3, hp:3, ab:[],       icon:"🥢", r:1, fl:"風を切る音だけで生徒が正座する。"},
+  ketsubat: {n:"ケツバット",  cost:3, kind:"u", tb:1, atk:3, hp:2, ab:["trample"], icon:"⚾", r:1, fl:"フルスイングに、手加減という文字はない。"},
+  tekken:   {n:"鉄拳制裁",    cost:4, kind:"u", tb:1, atk:5, hp:3, ab:[],        icon:"🥊", r:2, fl:"職員会議で三度議題に上がった右腕。"},
+  bassoku:  {n:"没収品の竹刀", cost:3, kind:"u", tb:1, atk:4, hp:2, ab:["haste"], icon:"⚔️", r:2, fl:"持ち主は、もういない。"},
+  pochi:    {n:"忠犬ポチ公",  cost:2, kind:"u", tb:0, atk:2, hp:2, ab:["haste"], icon:"🐕", r:2, fl:"校庭の隅で、ずっと待っていた。"},
+  sekkyo:   {n:"説教一時間",  cost:2, kind:"u", tb:0, atk:0, hp:4, ab:[],        icon:"🗣", r:0, fl:"「先生の若い頃はなあ…」から始まる長い夜。"},
+  baketsu:  {n:"バケツ両手持ち", cost:1, kind:"u", tb:0, atk:0, hp:3, ab:[],     icon:"🪣", r:0, fl:"水がこぼれたら、やり直し。"},
+  iincho:   {n:"学級委員長",  cost:2, kind:"u", tb:0, atk:1, hp:3, ab:["energize"], icon:"🎀", r:1, fl:"先生の一番の理解者。たぶん。"},
+  rouka:    {n:"廊下に立ってろ", cost:1, kind:"s", tb:1, icon:"🚪", r:0, target:"eunit", fl:"バケツは自分で用意しろ。",
+             desc:"敵カード1体を1ターン行動不能にする"},
+  seiza:    {n:"正座三時間",  cost:1, kind:"s", tb:1, icon:"🧎", r:0, target:"eunit", fl:"足の痺れは反省の証。",
+             desc:"敵カード1体の攻撃力を2下げる"},
+  ground:   {n:"グラウンド100周", cost:0, kind:"s", tb:1, icon:"🏃", r:0, target:"punit", fl:"「声が小さい! 一からやり直し!」",
+             desc:"味方カード1体を犠牲にして気合+2"},
+  hansei:   {n:"反省文",      cost:1, kind:"s", tb:0, icon:"📝", r:0, target:"none", fl:"原稿用紙十枚。心を込めて。",
+             desc:"カードを2枚引く"},
+  shukudai: {n:"宿題三倍",    cost:3, kind:"s", tb:0, icon:"📚", r:1, target:"none", fl:"週末の予定は、白紙になった。",
+             desc:"敵カード全体の攻撃力を1下げる"},
+  team:     {n:"チームワーク指導", cost:2, kind:"s", tb:0, icon:"🤝", r:1, target:"none", fl:"「全員で肩を組め。今すぐだ」",
+             desc:"味方カード全体の体力+2"},
+  aisek:    {n:"愛の説教",    cost:2, kind:"s", tb:1, icon:"💢", r:1, target:"eunit", fl:"声だけで黒板が震えた。",
+             desc:"敵カード1体に2ダメージ"},
+  kiai:     {n:"気合注入",    cost:1, kind:"s", tb:1, icon:"🔥", r:0, target:"punit", fl:"背中を叩く音が、体育館に響く。",
+             desc:"味方カード1体を+1/+1"},
+  album:    {n:"卒業アルバム", cost:3, kind:"s", tb:0, icon:"📖", r:2, target:"none", fl:"あの頃の教え子たちが、頁の中から。",
+             desc:"ランダムな体罰カード2枚を手札に加える"},
+  osu:      {n:"気合の雄叫び", cost:1, kind:"s", tb:0, icon:"📢", r:1, target:"none", fl:"「押忍」以外の返事は認めない。",
+             desc:"このターン気合+1、カードを1枚引く"},
+  honno:    {n:"本能の力",    cost:2, kind:"s", tb:0, icon:"👹", r:2, target:"none", fl:"血が、教鞭が、疼く。",
+             desc:"味方全体の攻撃力+1(永続・重ねがけ可)。3回で覚醒"},
+  curse:    {n:"モンペの電話", cost:2, kind:"s", tb:0, icon:"📞", r:0, target:"none", curse:1, fl:"「うちの子に限って」…夜9時の着信。",
+             desc:"何も起こらない(呪いカード)"}
+};
+for(const k in CARDS) CARDS[k].id = k;
+
+const STARTER_DECK = ["binta","binta","genkotsu","genkotsu","harisen","sekkyo","rouka","seiza","ground","honno"];
+const REWARD_POOL   = ["binta","genkotsu","kokuban","harisen","chalk","shusseki","mop","rentai","ohuku","shinai","ketsubat","sekkyo","baketsu","iincho","rouka","seiza","ground","hansei","shukudai","team","aisek","kiai","osu"];
+const ELITE_POOL    = ["tekken","bassoku","ohuku","ketsubat","album","honno","shinai","iincho","shukudai","aisek"];
+
+/* ---------- enemy units ---------- */
+const EU = {
+  student1:{n:"居眠りする生徒", atk:0, hp:2, icon:"😪", cost:1},
+  student2:{n:"スマホ内職",     atk:1, hp:1, icon:"📱", cost:1},
+  police1: {n:"機動隊員",       atk:3, hp:20, icon:"👮", cost:2},
+  police2: {n:"警察犬",         atk:2, hp:15, icon:"🐕‍🦺", cost:1},
+  police3: {n:"署長",           atk:4, hp:25, icon:"🚔", cost:3},
+  fuki:    {n:"風紀委員",       atk:1, hp:2, icon:"🎽", cost:1},
+  memo:    {n:"密告メモ",       atk:1, hp:1, icon:"📃", cost:1},
+  camera:  {n:"監視カメラ",     atk:0, hp:3, icon:"📹", cost:1},
+  member:  {n:"委員会の見張り", atk:2, hp:2, icon:"🕶", cost:2},
+  pta:     {n:"PTAの視線",      atk:2, hp:3, icon:"👁", cost:2},
+  yuto:    {n:"優等生の証言",   atk:3, hp:2, icon:"🎓", cost:3},
+  sasatsu: {n:"査察官",         atk:3, hp:3, icon:"🕵️", cost:3},
+  shinei:  {n:"委員会親衛隊",   atk:3, hp:4, icon:"🛡", cost:3},
+  bengoshi:{n:"顧問弁護士",     atk:4, hp:3, icon:"⚖️", cost:4},
+  kisha:   {n:"張り込み記者",   atk:2, hp:4, icon:"📷", cost:2},
+  kocho:   {n:"校長 事勿主義男", atk:1, hp:10, icon:"😰", cost:0, ab:["guard"]},
+  seito:   {n:"更生プログラム", atk:2, hp:3, icon:"🕊", cost:2},
+  karute:  {n:"カルテの山",     atk:1, hp:5, icon:"📋", cost:2},
+  taion:   {n:"検温の列",       atk:2, hp:2, icon:"🌡", cost:2},
+  goei:    {n:"会長の護衛",     atk:3, hp:3, icon:"🤵", cost:3},
+  shorui:  {n:"処分通知書",     atk:4, hp:2, icon:"📜", cost:3},
+  h_binta: {n:"師範のビンタ",   atk:3, hp:2, icon:"✋", cost:2},
+  h_shinai:{n:"折れた竹刀",     atk:3, hp:3, icon:"🥢", cost:3},
+  h_ketsu: {n:"奥義・ケツバット", atk:4, hp:3, icon:"⚾", cost:4, ab:["trample"]},
+  h_kage:  {n:"道場の影",       atk:2, hp:2, icon:"🌑", cost:2, ab:["haste"]}
+};
+for(const k in EU) EU[k].id = k;
+
+/* ---------- enemies ---------- */
+const ENEMIES = {
+  tutorial:{ n:"三時限目の生徒たち", icon:"🏫", area:1, special:"",
+    intro:"…いつも通りの、退屈な授業のはずだった。",
+    quotes:["(…あと何分で昼休みだ…)","(先生、また怒ってる…)"],
+    pool:["student1","student2"], curve:[1,1,1,1], igen:10 },
+  police:{ n:"警察官連合", icon:"🚨", area:1, special:"職務執行:こちらの攻撃はほぼ無効化される", ev:1,
+    intro:"「2G JONES先生ですね。署までご同行願います」",
+    quotes:["「抵抗はやめなさい」","「現行犯です。言い逃れはできません」","「あなたのやり方は、もう時代が許さない」"],
+    pool:["police1","police2","police3"], curve:[2,3,3,4], igen:0 },
+  fukiA:{ n:"見回りの風紀委員", icon:"🎽", area:1, special:"",
+    intro:"「せ、先生…!? 許可証のない教職活動は違反です!」",
+    quotes:["「委員会に報告しますよ…!」","「て、体罰、ダメ、ゼッタイ…」","「見なかったことには、できません」"],
+    pool:["fuki","memo","camera"], curve:[1,2,2,3,3], igen:20 },
+  mihariA:{ n:"委員会の見張り", icon:"🕶", area:1, special:"",
+    intro:"「…対象を発見。排除する」",
+    quotes:["「規則第一条。教師は、手を上げてはならない」","「あなたの記録は全て残っている」"],
+    pool:["member","memo","fuki"], curve:[1,2,3,3,3], igen:22 },
+  ptaB:{ n:"保護者監視網", icon:"👁", area:2, special:"",
+    intro:"「まあ…あの2G JONESが戻ってきたわよ…」",
+    quotes:["「うちの子に何かあったら、ただじゃおきませんから」","「今は、そういう時代じゃないんです」","(ひそひそ…ひそひそ…)"],
+    pool:["pta","kisha","member"], curve:[2,2,3,4,4], igen:28 },
+  yutoB:{ n:"かつての教え子・優等生", icon:"🎓", area:2, special:"",
+    intro:"「先生…僕はもう、あの頃の僕じゃありません」",
+    quotes:["「先生に殴られて伸びたなんて、思いたくないんです」","「証言台には、僕が立ちます」","「…先生。なんで、戻ってきたんですか」"],
+    pool:["yuto","sasatsu","memo"], curve:[2,3,3,4,5], igen:30 },
+  shineiC:{ n:"委員会親衛隊", icon:"🛡", area:3, special:"",
+    intro:"「会長のもとへは行かせない。ここが貴様の終着点だ」",
+    quotes:["「教育に、拳は要らない」","「我々は正義だ。正義は負けない」"],
+    pool:["shinei","goei","shorui"], curve:[2,3,4,4,5,5], igen:36 },
+  mikkokuC:{ n:"元同僚の密告者", icon:"🕵️", area:3, special:"",
+    intro:"「すまんな、JONES…俺にも生活があるんだ」",
+    quotes:["「お前のやり方は、もう通用せんのだよ」","「委員会に逆らって、生きていけると思うか」","「…昔は、いい酒を飲んだな」"],
+    pool:["bengoshi","sasatsu","kisha"], curve:[2,3,4,5,5], igen:36 },
+  colleague:{ n:"昔の同僚・熱血 剛", icon:"💪", area:2, special:"真剣勝負:手加減は一切なし", ev:1,
+    intro:"「JONES! 教師の魂、まだ錆びてないか確かめさせてもらうぞ!!」",
+    quotes:["「どうしたJONES! 声が小さい!!」","「魂で語れッ!!」","「いいぞ…その目だ!!」"],
+    pool:["shinai","ohuku","tekken"], epool:1, curve:[2,3,4,5,5], igen:40 },
+  shunin:{ n:"生活指導主任", icon:"👓", area:1, boss:1, special:"持ち物検査:開始時と3ターンごとに手札を1枚没収",
+    intro:"「久しぶりだな、JONES君。……鞄の中身を、見せてもらおうか」",
+    quotes:["「規律。それが全てだ」","「ポケットの中も、だ」","「隠し事は、必ず露見する」","「君のその手が、全ての元凶だよ」"],
+    pool:["member","fuki","camera","yuto"], curve:[2,2,3,3,4,4], igen:60 },
+  counselor:{ n:"スクールカウンセラー", icon:"🫖", area:2, boss:1, special:"傾聴:3ターンごとに場の体罰カード1体が更生し寝返る",
+    intro:"「お掛けなさい。……あなたの心の傷、私には視えるんですよ」",
+    quotes:["「怒りは、悲しみの仮面なんです」","「ほら…あなたの拳も、泣いている」","「大丈夫。ここでは誰もあなたを叱らない」","「深呼吸をして。……そう、上手」"],
+    pool:["seito","karute","pta"], curve:[2,3,3,4,4,5], igen:70 },
+  nushi:{ n:"保健室のヌシ", icon:"🩹", area:3, boss:1, special:"静養:毎ターン天秤の傾きを回復する",
+    intro:"「あらぁ…また怪我人? ……ふふ。ゆっくり、していきなさいな」",
+    quotes:["「安静が、いちばんのお薬よ」","「傷は、すぐ塞がるの。……私のはね」","「もう何十年も、ここから出ていないの」","「あなたも、ずっとここに居ればいいのに」"],
+    pool:["karute","taion","shinei"], curve:[2,3,4,4,5,5], igen:80 },
+  kaicho:{ n:"体罰撲滅委員会 会長", icon:"🎩", area:3, boss:1, final:1,
+    special:"無効化:体罰カードの攻撃を確率で無効/指導記録3で反撃",
+    intro:"「ようこそ、校長室へ。……2G JONES。君の『教育』を、ここで根絶やしにする」",
+    quotes:["「暴力を教育と呼ぶ時代は、私が終わらせた」","「君の一挙一動、全て記録させてもらう」","「ほう…まだ手を上げるか。記録が増えるな」","「事勿君、震えていないで君も働きたまえ」"],
+    pool:["goei","shorui","bengoshi","shinei"], curve:[2,3,4,4,5,6], igen:150 },
+  hiroshi:{ n:"初代・鬼教師の亡霊 ひろし", icon:"👺", area:4, boss:1, ura:1,
+    special:"本能の力:開幕から1スタック。時折さらに滾る",
+    intro:"「…来たか、JONES。儂の『本能』、返してもらいに来たんじゃろう。……かかってこい」",
+    quotes:["「その程度のビンタで、教育か…?」","「腰が入っとらん。全てにおいてな」","「儂は生前、拳で三千人を卒業させた」","「…ほう。少しは、儂に似てきたな」","「本能が…滾るのう…」"],
+    pool:["h_binta","h_shinai","h_ketsu","h_kage"], curve:[2,3,4,5,5,6], igen:200 }
+};
+for(const k in ENEMIES) ENEMIES[k].id = k;
+
+const CONVERT_NAMES = { binta:"和解の握手", genkotsu:"優しい撫でおろし", harisen:"うちわの風", chalk:"励ましの手紙", shusseki:"皆勤賞の表彰", mop:"清掃ボランティア", rentai:"集団カウンセリング", ohuku:"両手のハイタッチ", shinai:"麦茶のお酌", ketsubat:"キャッチボール", tekken:"感涙の抱擁", bassoku:"返却された竹刀", kokuban:"消された黒板" };
+
+/* ---------- stories ---------- */
+const ST_PROLOGUE = [
+  {bg:"#0a0e18", sp:"", tx:"――とある学校。\n三時限目。窓の外は薄曇り。", port:"🏫"},
+  {bg:"#0a0e18", sp:"2G JONES", tx:"「おい、そこ。今あくびをしたな」", port:"jones_young"},
+  {bg:"#0a0e18", sp:"2G JONES", tx:"「俺の授業で眠れるとは、いい度胸だ。\n……教育してやる」", port:"jones_young"},
+  {bg:"#0a0e18", sp:"", tx:"若き伝説の鬼教師、2G JONES。\nその教鞭は今日も唸る。\n\n(チュートリアル:カード戦闘の基本を学びましょう)", port:"jones_young"}
+];
+const ST_POLICE = [
+  {bg:"#100a0a", sp:"", tx:"授業が終わった、その時――\n教室の扉が、蹴破られた。", port:"🚨"},
+  {bg:"#100a0a", sp:"警察官", tx:"「2G JONES!! 体罰の現行犯で逮捕する!!」", port:"👮"},
+  {bg:"#100a0a", sp:"2G JONES", tx:"「……ほう。俺の授業を邪魔するとは、\nいい度胸だ」", port:"jones_young"},
+  {bg:"#100a0a", sp:"", tx:"※これはイベント戦闘です。\nどうあがいても勝てません。時代には、勝てません。", port:"🚨"}
+];
+const ST_ARREST = [
+  {bg:"#000000", sp:"", tx:"「「現行犯逮捕ォォォ!!」」\n\n無数の手が、伝説の教師を押さえつけた。", port:"⛓"},
+  {bg:"#000000", sp:"2G JONES", tx:"「……覚えておけ。\n俺の授業は、まだ終わってない……!!」", port:"jones_young"},
+  {bg:"#000000", sp:"", tx:"\n\n──── 数年後 ────", port:""},
+  {bg:"#0a0e18", sp:"", tx:"雨上がりの夕暮れ。\n校門の前に、一人の男が立っていた。\n\n無精髭。くたびれたスーツ。\nだが、白い運動靴だけは真新しい。", port:"jones"},
+  {bg:"#0a0e18", sp:"2G JONES", tx:"「刑期は終えた。\n\nだが、俺の授業はまだ終わっていない」", port:"jones"},
+  {bg:"#060a14", sp:"???", tx:"「……お帰りなさい、JONES先生。\nですがこの学校は今、『体罰撲滅委員会』の管理下。\nあなたの居場所は、もうありません」", port:"🕶"},
+  {bg:"#060a14", sp:"2G JONES", tx:"「なら、取り戻すだけだ。\n俺の教室を。俺の生徒を。……俺の教育を」", port:"jones"},
+  {bg:"#060a14", sp:"", tx:"夜の校舎に、明かりが灯る。\n最上階、校長室に座る『会長』を倒すため、\n鬼教師の最後の授業が始まる。", port:"🏫"}
+];
+const ST_RESTART = [
+  {bg:"#0a0e18", sp:"2G JONES", tx:"「……何度でも来る。\n俺の授業は、まだ終わっていない」", port:"jones"}
+];
+const ST_ENDING = [
+  {bg:"#241a10", sp:"会長", tx:"「バカな……この私が……\n時代が、貴様を裁いたはずだ……!」", port:"🎩"},
+  {bg:"#241a10", sp:"2G JONES", tx:"「時代は関係ない。\n教育ってのはな――魂と魂の、正座の勝負だ」", port:"jones"},
+  {bg:"#0a0e18", sp:"", tx:"委員会は解散した。\n学校に、生徒たちの声が戻ってくる。\n\n2G JONESの授業は、今日も続く。", port:"🏫"},
+  {bg:"#060a14", sp:"???", tx:"……その夜。\n校舎の外れ、剣道場から、\n竹刀を振る音が聞こえたという。\n\n(マップに『渡り廊下』が出現しました)", port:"👺"}
+];
+const ST_TRUE_ENDING = [
+  {bg:"#0a0e16", sp:"ひろし", tx:"「……見事じゃ。\n儂のビンタを、超えおったか……」", port:"👺"},
+  {bg:"#0a0e16", sp:"ひろし", tx:"「本能の力は、貴様のものじゃ。\n……振るう相手を、間違えるでないぞ」", port:"👺"},
+  {bg:"#0a0e16", sp:"", tx:"月明かりの剣道場に、師の姿が薄れていく。\n2G JONESは、深々と一礼した。", port:"jones_awk"},
+  {bg:"#0a0e18", sp:"2G JONES", tx:"「……押忍。\n\nあんたの教育、確かに継いだ」", port:"jones_awk"},
+  {bg:"#0a0e18", sp:"", tx:"── 真エンディング ──\n\n本能の力の真の継承者、2G JONES。\nその伝説は、今も学校のどこかで囁かれている。\n\nプレイしてくれてありがとう!", port:"👹"}
+];
+
+/* =========================================================
+   BATTLE ENGINE
+   ========================================================= */
+let B = null;
+let run = null;
+
+function jonesSVG(state){
+  const beard = state!=="young";
+  const awk = state==="awk";
+  return `<svg viewBox="0 0 60 60" class="${awk?"awk":""}">
+    <rect x="0" y="0" width="60" height="60" fill="#0a0d18"/>
+    <path d="M8 60 L14 42 Q30 36 46 42 L52 60 Z" fill="#1c2a4a"/>
+    <path d="M26 42 L30 60 L34 42 Q30 40 26 42Z" fill="#e8e2d4"/>
+    <path d="M28 44 L30 58 L32 44 Q30 43 28 44Z" fill="#a02828"/>
+    <rect x="38" y="45" width="3" height="7" fill="#d0d0d8" rx="1"/>
+    <ellipse cx="30" cy="26" rx="12" ry="13" fill="#e0b890"/>
+    <path d="M18 22 Q19 10 30 10 Q41 10 42 22 L42 18 Q40 8 30 8 Q20 8 18 18 Z" fill="#181410"/>
+    <path d="M18 22 Q24 16 30 17 Q36 16 42 22 Q42 14 30 12 Q18 14 18 22Z" fill="#181410"/>
+    ${awk?'<rect class="jones-band" x="17" y="17" width="26" height="5" fill="#a02828" rx="2"/>':""}
+    <ellipse class="jones-eye" cx="25" cy="25" rx="1.8" ry="${awk?2.2:1.6}"/>
+    <ellipse class="jones-eye" cx="35" cy="25" rx="1.8" ry="${awk?2.2:1.6}"/>
+    ${awk?'<ellipse cx="25" cy="25" rx="3.4" ry="3.2" fill="rgba(255,40,20,.35)"/><ellipse cx="35" cy="25" rx="3.4" ry="3.2" fill="rgba(255,40,20,.35)"/>':""}
+    <path d="M24 21 L27 22 M36 21 L33 22" stroke="#181410" stroke-width="1.6"/>
+    <path d="M27 33 Q30 ${awk?31:34} 33 33" stroke="#8a6a4a" stroke-width="1.2" fill="none"/>
+    ${beard?'<g fill="#2a241e" opacity=".7"><circle cx="24" cy="33" r=".7"/><circle cx="27" cy="35" r=".7"/><circle cx="30" cy="36" r=".7"/><circle cx="33" cy="35" r=".7"/><circle cx="36" cy="33" r=".7"/><circle cx="26" cy="32" r=".6"/><circle cx="34" cy="32" r=".6"/><circle cx="30" cy="34" r=".6"/></g>':""}
+  </svg>`;
+}
+
+function newPUnit(cid){
+  const c = CARDS[cid];
+  const up = (run && run.upgrades[cid]) || 0;
+  return {uid:uidc++, cid, n:c.n, icon:c.icon, atk:c.atk+up+(B?B.instinct:0), hp:c.hp+up, mhp:c.hp+up, tb:!!c.tb, ab:(c.ab||[]).slice(), stun:0, enemy:false};
+}
+function newEUnit(eid, bonusAtk){
+  const d = EU[eid] || CARDS[eid];
+  return {uid:uidc++, cid:eid, n:d.n, icon:d.icon, atk:d.atk+(bonusAtk||0), hp:d.hp, mhp:d.hp, tb:!!d.tb, ab:(d.ab||[]).slice(), stun:0, enemy:true};
+}
+
+function startBattle(enemyId, opts){
+  opts = opts || {};
+  const e = ENEMIES[enemyId];
+  B = {
+    e, opts, over:false, busy:false,
+    p:[null,null,null,null], en:[null,null,null,null],
+    deck: shuffle(run.deck.slice()), hand:[], discard:[],
+    turn:1, energy:0, scale:0, instinct:0,
+    ctSteal:0, ctConvert:0, ctRecord:0, ctHide:0, enInstinct:0,
+    tutorialStep: enemyId==="tutorial" ? 0 : -1,
+    policeTimer: enemyId==="police" ? 0 : -1
+  };
+  const bgc = e.ura ? "bg4" : (e.final ? "bg3" : (e.area>=2 ? "bg2" : "bg1"));
+  const sc = $("screen-battle");
+  sc.className = "screen active " + bgc;
+  showScreen("screen-battle");
+  $("b-eport").textContent = e.icon;
+  $("b-ename").textContent = e.n;
+  $("b-especial").textContent = e.special || "";
+  bubble(e.intro);
+  // draw opening hand
+  for(let i=0;i<4;i++) drawCard();
+  // boss setup
+  if(enemyId==="shunin") stealHand("「開始前に、持ち物検査だ」");
+  if(enemyId==="kaicho"){ B.en[1] = newEUnit("kocho"); bubble("校長「わ、私は悪くない…すべて時代がそうさせたんです…」"); }
+  if(enemyId==="hiroshi"){ B.enInstinct = 1; }
+  if(enemyId==="tutorial"){ B.en[1] = newEUnit("student1"); B.en[2] = newEUnit("student2"); }
+  startPlayerTurn();
+}
+
+function drawCard(){
+  if(B.deck.length===0){
+    if(B.discard.length===0) return false;
+    B.deck = shuffle(B.discard); B.discard = [];
+  }
+  if(B.hand.length>=8) return false;
+  B.hand.push(B.deck.pop());
+  return true;
+}
+
+function startPlayerTurn(){
+  if(B.over) return;
+  B.energy = Math.min(B.turn,6);
+  for(const u of B.p) if(u && u.ab.includes("energize")) B.energy++;
+  if(B.turn>1) drawCard();
+  B.sel = -1; B.pend = null; B.busy = false;
+  if(B.tutorialStep>=0) tutorialHint();
+  else if(B.e.id==="police") msg("(……この威圧感。勝てる気がしない)");
+  else msg("カードを選んで置くか、ベルを鳴らして授業を終えよう。");
+  renderBattle();
+}
+
+function tutorialHint(){
+  const hints = [
+    "【授業開始】手札のカードを選び、光っているマスに置こう。数字は左が攻撃力、右が体力。",
+    "カードを置いたら「🔔授業終了」でターン終了。カードが正面の敵を攻撃する。敵がいなければ相手本体にダメージ!",
+    "本体へのダメージは上の【天秤】に乗る。自分側(📖)に5傾けば勝利だ。",
+    "気合(⚡)は毎ターン増える。コストの重いカードは終盤に。……いいか、授業は続けるぞ。"
+  ];
+  msg(hints[Math.min(B.turn-1,hints.length-1)]);
+}
+
+function bubble(t){ $("b-ebubble").textContent = t || ""; }
+function msg(t){ $("b-msg").textContent = t || ""; }
+
+function fpop(el, text, color){
+  if(!el) el = $("b-board");
+  const d = document.createElement("div");
+  d.className = "fpop"; d.textContent = text;
+  if(color) d.style.color = color;
+  el.appendChild(d);
+  setTimeout(()=>d.remove(), 1050);
+}
+
+/* ---------- render ---------- */
+function unitEl(u){
+  const d = document.createElement("div");
+  d.className = "unit" + (u.enemy?" enemy-unit":"") + (u.stun>0?" stunned":"") + (u.ab.includes("guard")?" guard-unit":"");
+  d.id = "u" + u.uid;
+  const abtxt = u.ab.map(a=>AB_TEXT[a]).join("・");
+  d.innerHTML = `<div class="u-icon">${u.icon}</div><div class="u-name">${u.n}</div>
+    <div class="u-stats"><span class="u-atk">${u.atk}</span><span class="u-hp">${u.hp}</span></div>
+    ${abtxt?`<div class="u-badges" title="${abtxt}">◆</div>`:""}`;
+  d.title = u.n + (abtxt? " ─ "+abtxt : "");
+  return d;
+}
+function cardEl(cid, big){
+  const c = CARDS[cid];
+  const up = (run && run.upgrades[cid]) || 0;
+  const d = document.createElement("div");
+  d.className = "card" + (c.tb?"":" support-card") + (big?" big":"") + (c.r===2?" rare-card":"");
+  let stats = "";
+  if(c.kind==="u") stats = `<div class="c-stats"><span class="u-atk">⚔${c.atk+up}</span><span class="u-hp">♥${c.hp+up}</span></div>`;
+  const desc = c.kind==="u" ? (c.ab||[]).map(a=>AB_TEXT[a]+":"+AB_DESC[a]).join(" / ") : c.desc;
+  d.innerHTML = `<div class="c-cost">${c.cost}</div><div class="c-icon">${c.icon}</div>
+    <div class="c-name">${c.n}${up?"+"+up:""}</div><div class="c-desc">${desc||""}</div>${stats}`;
+  d.title = (c.fl||"");
+  return d;
+}
+
+function renderBattle(){
+  if(!B) return;
+  const sc = $("screen-battle");
+  sc.classList.toggle("awakened", B.instinct>=3);
+  // slots
+  const eS = $("e-slots"), pS = $("p-slots");
+  eS.innerHTML = ""; pS.innerHTML = "";
+  for(let i=0;i<4;i++){
+    const s = document.createElement("div");
+    s.className = "slot"; s.id = "es"+i;
+    if(B.en[i]) s.appendChild(unitEl(B.en[i]));
+    if(B.pend && B.pend.target==="eunit" && B.en[i]) { s.classList.add("targetable"); s.onclick = ()=>castAt("e",i); }
+    eS.appendChild(s);
+  }
+  for(let i=0;i<4;i++){
+    const s = document.createElement("div");
+    s.className = "slot"; s.id = "ps"+i;
+    if(B.p[i]) s.appendChild(unitEl(B.p[i]));
+    if(B.sel>=0 && !B.p[i] && CARDS[B.hand[B.sel]].kind==="u"){ s.classList.add("droppable"); s.onclick = ()=>placeUnit(i); }
+    if(B.pend && B.pend.target==="punit" && B.p[i]){ s.classList.add("targetable"); s.onclick = ()=>castAt("p",i); }
+    pS.appendChild(s);
+  }
+  // hand
+  const h = $("b-hand"); h.innerHTML = "";
+  B.hand.forEach((cid,idx)=>{
+    const c = CARDS[cid];
+    const el = cardEl(cid,false);
+    if(c.cost > B.energy) el.classList.add("unaffordable");
+    if(idx===B.sel) el.classList.add("selected");
+    el.onclick = ()=>selectHand(idx);
+    h.appendChild(el);
+  });
+  // hud
+  $("b-energy").textContent = "⚡気合 " + B.energy;
+  $("b-instinct").textContent = B.instinct>0 ? "👹本能 " + "●".repeat(Math.min(B.instinct,6)) + (B.instinct>=3?" 覚醒":"") : "";
+  $("b-deckn").textContent = "山札 " + B.deck.length;
+  $("b-jones").innerHTML = jonesSVG(B.e.id==="tutorial"||B.e.id==="police" ? "young" : (B.instinct>=3?"awk":"beard"));
+  $("b-bell").disabled = B.busy;
+  // scale
+  const deg = -B.scale * 5;
+  $("b-beam").style.transform = `rotate(${deg}deg)`;
+  $("b-scalenum").textContent = `敵 ${B.scale<0?Math.abs(B.scale):0} ─ 天秤 ─ ${B.scale>0?B.scale:0} 自分 (5で決着)`;
+  // counters
+  let ct = "";
+  if(B.e.id==="kaicho") ct = "📋指導記録 " + "■".repeat(B.ctRecord) + "□".repeat(Math.max(0,3-B.ctRecord)) + (B.instinct>=3?" (覚醒により無効)":"");
+  if(B.e.id==="hiroshi") ct = "👹敵の本能 " + "●".repeat(B.enInstinct);
+  $("b-counters").textContent = ct;
+  updateTopbar();
+}
+
+/* ---------- input ---------- */
+function selectHand(idx){
+  if(B.busy || B.over) return;
+  const cid = B.hand[idx];
+  const c = CARDS[cid];
+  if(B.sel===idx){ B.sel=-1; B.pend=null; renderBattle(); return; }
+  if(c.cost > B.energy){ msg("気合が足りない…(⚡" + c.cost + "必要)"); return; }
+  B.sel = idx; B.pend = null;
+  if(c.kind==="s"){
+    if(c.target==="none"){ castSpell(idx, null, null); return; }
+    const pool = c.target==="eunit" ? B.en : B.p;
+    if(!pool.some(u=>u)){ msg("対象となるカードが場にない。"); B.sel=-1; renderBattle(); return; }
+    B.pend = {idx, target:c.target};
+    msg(c.target==="eunit" ? "対象の敵カードを選べ。" : "対象の味方カードを選べ。");
+  } else {
+    msg("置きたいマスを選べ。(もう一度カードを押すと解除)");
+  }
+  renderBattle();
+}
+
+async function placeUnit(lane){
+  if(B.busy || B.over || B.sel<0) return;
+  const cid = B.hand[B.sel];
+  const c = CARDS[cid];
+  if(c.kind!=="u" || B.p[lane]) return;
+  B.busy = true;
+  B.energy -= c.cost;
+  B.hand.splice(B.sel,1); B.sel=-1; B.pend=null;
+  const u = newPUnit(cid);
+  B.p[lane] = u;
+  onPlayerCardPlayed(c);
+  // rally
+  for(const a of B.p) if(a && a!==u && a.ab.includes("rally")){ a.atk++; }
+  renderBattle();
+  fpop($("ps"+lane), c.n);
+  await sleep(250);
+  if(u.ab.includes("haste") && !B.over){
+    await unitAttack(u, lane, true);
+  }
+  if(B){ B.busy = false; if(!B.over) renderBattle(); }
+}
+
+function castAt(side, lane){ if(B.pend) castSpell(B.pend.idx, side, lane); }
+
+async function castSpell(idx, side, lane){
+  if(B.busy || B.over) return;
+  const cid = B.hand[idx];
+  const c = CARDS[cid];
+  B.busy = true;
+  B.energy -= c.cost;
+  B.hand.splice(idx,1); B.sel=-1; B.pend=null;
+  B.discard.push(cid);
+  onPlayerCardPlayed(c);
+  const t = side==="e" ? B.en[lane] : (side==="p" ? B.p[lane] : null);
+  const tEl = t ? $("u"+t.uid) : null;
+  switch(cid){
+    case "rouka":
+      t.stun = 2; fpop(tEl,"廊下に立ってろ!"); break;
+    case "seiza":
+      t.atk = Math.max(0,t.atk-2); fpop(tEl,"正座三時間 ⚔-2"); break;
+    case "ground":
+      fpop(tEl,"グラウンド100周!");
+      await killUnit(t);
+      B.energy += 2; fpop(null,"⚡+2","#e8c76a"); break;
+    case "hansei":
+      drawCard(); drawCard(); fpop(null,"反省文:2枚ドロー"); break;
+    case "shukudai":
+      for(const u of B.en) if(u){ u.atk=Math.max(0,u.atk-1); }
+      fpop(null,"宿題三倍:敵全体⚔-1"); break;
+    case "team":
+      for(const u of B.p) if(u){ u.hp+=2; u.mhp+=2; }
+      fpop(null,"チームワーク指導:味方♥+2"); break;
+    case "aisek":
+      fpop(tEl,"愛の説教!"); await damageUnit(t, 2); break;
+    case "kiai":
+      t.atk++; t.hp++; t.mhp++; fpop(tEl,"気合注入 +1/+1"); break;
+    case "album": {
+      const tbs = REWARD_POOL.filter(k=>CARDS[k].kind==="u"&&CARDS[k].tb);
+      B.hand.push(rnd(tbs)); if(B.hand.length<8) B.hand.push(rnd(tbs));
+      fpop(null,"卒業アルバム:体罰カードを手に"); break; }
+    case "osu":
+      B.energy++; drawCard(); fpop(null,"押忍! ⚡+1 & 1枚ドロー"); break;
+    case "honno": {
+      B.instinct++;
+      for(const u of B.p) if(u) u.atk++;
+      if(B.e.id==="kaicho" && B.ctRecord>0){ B.ctRecord=0; fpop(null,"指導記録が消し飛んだ!","#c86a5a"); }
+      if(B.instinct===3){
+        renderBattle();
+        await banner("覚 醒","本能の力が全身を駆け巡る──\nネクタイを額に巻いた。もう誰にも止められない。", true);
+      } else {
+        fpop(null,"本能の力 +1 (計"+B.instinct+")","#e05040");
+      }
+      break; }
+    case "curse":
+      fpop(null,"『うちの子に限って!』…何も起きなかった。"); break;
+  }
+  if(B){ B.busy = false; if(!B.over) renderBattle(); }
+}
+
+function onPlayerCardPlayed(c){
+  if(B.e.id==="kaicho" && c.tb && B.instinct<3){
+    B.ctRecord++;
+    fpop(null,"📋 指導記録 +1","#c86a5a");
+  }
+}
+
+/* ---------- combat resolution ---------- */
+function getTargets(u, lane, opp){
+  if(u.ab.includes("sweep")){
+    const out = [];
+    for(const l of [lane-1,lane,lane+1]) if(l>=0&&l<4) out.push({lane:l, unit:opp[l]});
+    return out;
+  }
+  if(u.ab.includes("snipe")){
+    let best=null, bl=-1;
+    for(let l=0;l<4;l++){ const t=opp[l]; if(t && (!best || t.hp<best.hp)){best=t;bl=l;} }
+    if(best) return [{lane:bl, unit:best}];
+    return [{lane, unit:null}];
+  }
+  return [{lane, unit:opp[lane]}];
+}
+
+async function damageUnit(t, dmg, srcUnit){
+  if(!B || !t || dmg<=0) return;
+  t.hp -= dmg;
+  const el = $("u"+t.uid);
+  if(el){ el.classList.add("hitflash"); fpop(el.parentElement, "-"+dmg, "#e05040"); }
+  await sleep(200);
+  if(t.hp<=0) await killUnit(t);
+  else if(srcUnit && t.ab.includes("counter") && srcUnit.hp>0){
+    fpop($("u"+srcUnit.uid) && $("u"+srcUnit.uid).parentElement, "返り討ち!", "#c8a44a");
+    srcUnit.hp -= 2;
+    if(srcUnit.hp<=0) await killUnit(srcUnit);
+  }
+}
+
+async function killUnit(t){
+  if(!B) return;
+  const el = $("u"+t.uid);
+  if(el){ el.classList.add("dying"); await sleep(300); }
+  const arr = t.enemy ? B.en : B.p;
+  const i = arr.indexOf(t);
+  if(i>=0) arr[i] = null;
+  if(t.cid==="kocho"){
+    bubble("校長「ひ、ひぃぃ…! も、もう庇いきれません…!」");
+    fpop(null,"忖度の壁が崩れた!","#e8c76a");
+  }
+}
+
+function tiltScale(n){ // + toward player win
+  B.scale = Math.max(-5, Math.min(5, B.scale + n));
+}
+
+async function faceDamage(attacker, dmg){
+  if(!B || dmg<=0) return;
+  if(!attacker.enemy){
+    // guard unit intercepts (kocho)
+    const g = B.en.find(u=>u && u.ab.includes("guard"));
+    if(g){
+      fpop($("u"+g.uid) && $("u"+g.uid).parentElement, "忖度!肩代わり", "#e8c76a");
+      await damageUnit(g, dmg, attacker);
+      return;
+    }
+    tiltScale(dmg);
+    fpop($("b-scalebox"), "本体に "+dmg+" ダメージ!", "#e8c76a");
+  } else {
+    tiltScale(-dmg);
+    fpop($("b-scalebox"), "こちらに "+dmg+" ダメージ…", "#e05040");
+  }
+  renderBattle();
+  await sleep(250);
+  checkEnd();
+}
+
+function tryNullify(u){
+  if(u.enemy) return false;
+  if(B.e.id==="police" && Math.random()<0.9) return "「公務執行妨害だ」…無効化された!";
+  if(B.e.id==="kaicho" && u.tb && B.instinct<3 && Math.random()<0.35) return "会長「記録済みだ」…攻撃が無効化された!";
+  return false;
+}
+
+async function unitAttack(u, lane, isHaste){
+  if(!B || B.over || !u || u.hp<=0) return;
+  if(u.stun>0){ if(!isHaste){ u.stun--; renderBattle(); } return; }
+  const opp = u.enemy ? B.p : B.en;
+  const times = u.ab.includes("double") ? 2 : 1;
+  for(let k=0;k<times;k++){
+    if(!B || B.over || u.hp<=0) break;
+    if(u.atk<=0) break;
+    const el = $("u"+u.uid);
+    if(el) el.classList.add(u.enemy?"atk-down":"atk-up");
+    await sleep(190);
+    const nul = tryNullify(u);
+    if(nul){
+      fpop(el && el.parentElement, "無効化!", "#8090b0");
+      msg(nul);
+      if(el) el.classList.remove("atk-down","atk-up");
+      await sleep(250);
+      continue;
+    }
+    const targets = getTargets(u, lane, opp);
+    for(const t of targets){
+      if(!B || B.over) break;
+      if(t.unit && t.unit.hp>0){
+        const over = u.atk - t.unit.hp;
+        await damageUnit(t.unit, u.atk, u);
+        if(u.ab.includes("trample") && over>0 && !B.over) await faceDamage(u, over);
+      } else {
+        await faceDamage(u, u.atk);
+      }
+    }
+    if(el) el.classList.remove("atk-down","atk-up");
+    await sleep(120);
+  }
+}
+
+/* ---------- turn flow ---------- */
+async function ringBell(){
+  if(!B || B.busy || B.over) return;
+  B.busy = true; B.sel=-1; B.pend=null;
+  renderBattle();
+  msg("── 攻撃タイム ──");
+  // player attacks
+  for(let i=0;i<4;i++){
+    if(!B || B.over) break;
+    if(B.p[i]) await unitAttack(B.p[i], i, false);
+  }
+  if(!B || B.over) return;
+  await sleep(300);
+  await enemyTurn();
+  if(!B || B.over) return;
+  B.turn++;
+  startPlayerTurn();
+}
+
+async function enemyTurn(){
+  const e = B.e;
+  msg("── 相手のターン ──");
+  if(Math.random()<0.75) bubble(rnd(e.quotes));
+  renderBattle();
+  await sleep(400);
+
+  // boss specials at enemy turn start
+  if(e.id==="shunin" && B.turn%3===0 && B.hand.length>0){
+    stealHand("主任「定期検査の時間だ」");
+    renderBattle(); await sleep(500);
+  }
+  if(e.id==="counselor"){
+    B.ctConvert++;
+    if(B.ctConvert%3===0){
+      const cands = [];
+      B.p.forEach((u,i)=>{ if(u && u.tb) cands.push(i); });
+      const free = []; B.en.forEach((u,i)=>{ if(!u) free.push(i); });
+      if(cands.length && free.length){
+        const i = rnd(cands), j = rnd(free);
+        const u = B.p[i]; B.p[i] = null;
+        u.enemy = true;
+        u.n = CONVERT_NAMES[u.cid] || ("更生した" + u.n);
+        u.icon = "🕊"; u.hp = u.mhp; u.stun = 0;
+        B.en[j] = u;
+        bubble("「ほら…あなたは本当は、優しい子」");
+        renderBattle();
+        fpop($("es"+j), "傾聴:寝返った!", "#a080d0");
+        await sleep(700);
+      }
+    }
+  }
+  if(e.id==="nushi" && B.scale > -2){
+    tiltScale(-1);
+    fpop($("b-scalebox"), "静養:傾きが戻された…", "#80c0a0");
+    renderBattle(); await sleep(450);
+    if(checkEnd()) return;
+  }
+  if(e.id==="kaicho"){
+    B.ctHide++;
+    if(B.ctHide%2===0){
+      const cands = B.p.filter(u=>u);
+      if(cands.length){
+        const u = rnd(cands);
+        u.stun = 2;
+        bubble("校長「な、なかったことに…しましょう…ね?」");
+        renderBattle();
+        fpop($("u"+u.uid) && $("u"+u.uid).parentElement, "隠蔽体質:行動不能!", "#a080d0");
+        await sleep(600);
+      }
+    }
+    if(B.ctRecord>=3 && B.instinct<3){
+      B.ctRecord = 0;
+      await banner("委員会の制裁","「指導記録3件。……処分を執行する」", false, 1300);
+      let best=null;
+      for(const u of B.p) if(u && (!best||u.atk>best.atk)) best=u;
+      if(best){ fpop($("u"+best.uid) && $("u"+best.uid).parentElement,"処分執行!","#e05040"); await killUnit(best); }
+      await faceDamage({enemy:true}, 2);
+      if(B.over) return;
+      renderBattle();
+    }
+  }
+  if(e.id==="hiroshi"){
+    if(B.turn%3===0){
+      B.enInstinct++;
+      for(const u of B.en) if(u) u.atk++;
+      bubble("「本能が…滾るのう…!」");
+      renderBattle();
+      fpop($("b-eport"), "敵の本能 +1!", "#e05040");
+      await sleep(600);
+    }
+  }
+
+  // spawn units
+  let budget = e.curve[Math.min(B.turn-1, e.curve.length-1)];
+  const pool = e.pool.slice();
+  let guardTries = 8;
+  while(budget>0 && guardTries-->0){
+    const free = []; B.en.forEach((u,i)=>{ if(!u) free.push(i); });
+    if(!free.length) break;
+    const affordable = pool.filter(k=>(EU[k]?EU[k].cost:CARDS[k].cost)<=budget);
+    if(!affordable.length) break;
+    const pick = rnd(affordable);
+    const cost = EU[pick] ? EU[pick].cost : CARDS[pick].cost;
+    budget -= cost;
+    // prefer lane facing player's empty lane sometimes, else random
+    let lane;
+    const facingEmpty = free.filter(l=>!B.p[l]);
+    lane = (facingEmpty.length && Math.random()<0.6) ? rnd(facingEmpty) : rnd(free);
+    B.en[lane] = newEUnit(pick, e.id==="hiroshi" ? B.enInstinct : 0);
+    renderBattle();
+    fpop($("es"+lane), B.en[lane].n);
+    await sleep(300);
+  }
+
+  // enemy attacks
+  for(let i=0;i<4;i++){
+    if(!B || B.over) return;
+    if(B.en[i]) await unitAttack(B.en[i], i, false);
+  }
+  if(!B || B.over) return;
+
+  // police arrest event
+  if(e.id==="police" && B.turn>=3){
+    await policeArrest();
+    return;
+  }
+}
+
+function stealHand(t){
+  if(B.hand.length===0) return;
+  const i = Math.floor(Math.random()*B.hand.length);
+  const cid = B.hand.splice(i,1)[0];
+  bubble(t);
+  fpop($("b-hand"), "没収! ─ " + CARDS[cid].n, "#e05040");
+}
+
+function checkEnd(){
+  if(!B) return true;
+  if(B.over) return true;
+  if(B.scale>=5){ B.over = true; setTimeout(()=>winBattle(),400); return true; }
+  if(B.scale<=-5){ B.over = true; setTimeout(()=>loseBattle(),400); return true; }
+  return false;
+}
+
+function banner(main, sub, red, dur){
+  return new Promise(res=>{
+    $("banner-main").textContent = main;
+    $("banner-sub").textContent = sub || "";
+    const b = $("banner");
+    b.className = "show" + (red?" red":"");
+    setTimeout(()=>{ b.className=""; res(); }, dur||1800);
+  });
+}
+
+async function policeArrest(){
+  B.over = true;
+  await banner("現 行 犯 逮 捕","無数の手錠が、教壇の男に殺到した。\n\n※これはイベント戦闘です。この敗北にペナルティはありません。", true, 3000);
+  B = null;
+  playStory(ST_ARREST, ()=>{
+    save.prologueDone = true; commitSave();
+    beginRun();
+  });
+}
+
+async function winBattle(){
+  const e = B.e;
+  const opts = B.opts;
+  await banner("勝 訴 …もとい 勝 利","「これが、俺の授業だ」", false, 1600);
+  const gained = e.igen || 20;
+  B = null;
+  addIgen(gained);
+  if(opts.onWin){ opts.onWin(gained); return; }
+  // default flows
+  if(e.id==="tutorial"){
+    playStory(ST_POLICE, ()=> startBattle("police"));
+  } else if(e.id==="kaicho"){
+    save.cleared = true; save.wins++; commitSave();
+    playStory(ST_ENDING, ()=>{ run.bossDone = true; renderMap(); showScreen("screen-map"); });
+  } else if(e.id==="hiroshi"){
+    save.trueCleared = true; save.wins++; commitSave();
+    playStory(ST_TRUE_ENDING, ()=> toTitle());
+  } else if(e.boss){
+    showReward(ELITE_POOL, 2, "中ボス撃破!", "威厳 +"+gained+"。強力なカードを1枚選べ。", ()=>{ advanceStep(); });
+  } else {
+    const bonus = opts.bonus;
+    showReward(REWARD_POOL, bonus?2:1, "勝利", "威厳 +"+gained+"。戦利品のカードを1枚選べ。", ()=>{ advanceStep(); });
+  }
+}
+
+async function loseBattle(){
+  const e = B.e;
+  const opts = B.opts;
+  if(e.id==="police"){ await policeArrest(); return; }
+  if(e.id==="tutorial"){
+    await banner("居 眠 り 完 遂","……生徒たちに敗北した。教育のやり直しだ。", true, 2000);
+    startBattle("tutorial", {});
+    return;
+  }
+  B = null;
+  if(opts.onLose){ await banner("敗 北","……ここで引くのも、教育だ。", true, 1600); opts.onLose(); return; }
+  run.candles--;
+  updateTopbar();
+  if(run.candles>0){
+    await banner("敗 北","ろうそくが一本、消えた……\n(残り " + "🕯".repeat(run.candles) + ")\n\nだが、まだ授業は終わらない。再戦だ。", true, 2400);
+    startBattle(e.id, opts);
+  } else {
+    await banner("敗 北","最後のろうそくが、消えた。", true, 2000);
+    runOver();
+  }
+}
+
+function runOver(){
+  const igen = save.igen;
+  showScreen("screen-over");
+  $("over-main").textContent = "─ 停 職 処 分 ─";
+  $("over-sub").textContent = "2G JONESは校舎を後にした。\nだが、その背中はまだ折れていない。\n\n貯めた威厳ポイント【" + igen + "】は失われない。\n次のランに持ち越して、ショップで力を蓄えろ。";
+  run = null;
+  updateTopbar();
+}
+
+/* =========================================================
+   RUN / MAP
+   ========================================================= */
+const AREAS = [
+  { name:"1F ─ 昇降口と教室棟", sub:"非常灯だけが灯る、静まり返った廊下。", elite:"shunin", eliteRoom:"昇降口前",
+    enemies:["fukiA","mihariA"], rooms:["1年A組","1年B組","1年C組","昇降口","購買部前","掃除用具入れ"] },
+  { name:"2F ─ 特別教室棟", sub:"理科室から、フラスコの音がした気がする。", elite:"counselor", eliteRoom:"カウンセリングルーム",
+    enemies:["ptaB","yutoB"], rooms:["理科室","音楽室","図書室","美術室","家庭科室","視聴覚室"] },
+  { name:"3F ─ 職員室エリア", sub:"廊下の最奥、校長室の扉から光が漏れている。", elite:"nushi", eliteRoom:"保健室",
+    enemies:["shineiC","mikkokuC"], rooms:["職員室前","印刷室","放送室","会議室","資料室","更衣室"] }
+];
+
+const NODE_META = {
+  battle:  {icon:"⚔️", label:"戦闘"},
+  battleB: {icon:"🔥", label:"戦闘(報酬増)"},
+  card:    {icon:"🃏", label:"カード獲得"},
+  upgrade: {icon:"⬆️", label:"カード強化"},
+  shop:    {icon:"🛒", label:"職員室ショップ"},
+  event:   {icon:"❓", label:"???"},
+  elite:   {icon:"💀", label:"中ボス"},
+  boss:    {icon:"👑", label:"校長室"},
+  dojo:    {icon:"👺", label:"剣道場"},
+  home:    {icon:"🌅", label:"凱旋する"}
+};
+
+function mkNode(type, area){
+  const a = AREAS[area-1];
+  const n = {type, room: rnd(a.rooms)};
+  if(type==="battle"||type==="battleB"){ n.enemy = rnd(a.enemies); n.bonus = (type==="battleB"); }
+  if(type==="elite"){ n.enemy = a.elite; n.room = a.eliteRoom; }
+  if(type==="boss"){ n.room = "校長室"; }
+  if(type==="dojo"){ n.room = "剣道場"; }
+  if(type==="home"){ n.room = "校門"; }
+  return n;
+}
+
+function genArea(area){
+  const steps = [];
+  const single = t => steps.push({nodes:[mkNode(t,area)], done:false});
+  const pair = (a,b) => steps.push({nodes:[mkNode(a,area),mkNode(b,area)], done:false});
+  single("battle");
+  Math.random()<0.5 ? pair("battleB","card") : pair("battleB","event");
+  single(Math.random()<0.5 ? "event" : "card");
+  pair("shop","upgrade");
+  single("battle");
+  Math.random()<0.5 ? pair("event","battleB") : pair("upgrade","battleB");
+  single("elite");
+  if(area===3) single("boss");
+  return steps;
+}
+
+function newRun(){
+  run = { deck: STARTER_DECK.slice(), candles:2, area:1, step:0,
+          map: genArea(1), upgrades:{}, usedEvents:[], bossDone:false };
+}
+
+function beginRun(){
+  newRun();
+  updateTopbar();
+  renderMap();
+  showScreen("screen-map");
+}
+
+function renderMap(){
+  const a = AREAS[run.area-1];
+  $("map-floor").textContent = "🏫 " + a.name;
+  $("map-floor-sub").textContent = a.sub;
+  const cor = $("map-corridor");
+  cor.innerHTML = "";
+  const steps = run.map.slice();
+  // hidden dojo after boss clear
+  const showDojo = run.bossDone;
+  if(showDojo) steps.push({nodes:[mkNode("dojo",3), mkNode("home",3)], done:false, dojoStep:true});
+  steps.forEach((st, si)=>{
+    const row = document.createElement("div");
+    row.className = "map-step";
+    const isCurrent = showDojo ? !!st.dojoStep : (si===run.step);
+    st.nodes.forEach((nd)=>{
+      const m = NODE_META[nd.type];
+      const el = document.createElement("div");
+      el.className = "map-node";
+      if(nd.type==="boss") el.classList.add("boss-node");
+      if(nd.type==="dojo") el.classList.add("dojo-node");
+      if(st.done) el.classList.add("done");
+      else if(isCurrent){ el.classList.add("avail"); el.onclick = ()=>enterNode(nd, st); }
+      else el.classList.add("locked");
+      el.innerHTML = `<span class="mn-icon">${m.icon}</span><span class="mn-label">${nd.room}<br>${m.label}</span>`;
+      row.appendChild(el);
+    });
+    if(isCurrent && !st.done){
+      const you = document.createElement("div");
+      you.className = "map-you";
+      you.textContent = "▲ 2G JONES";
+      row.appendChild(you);
+    }
+    cor.appendChild(row);
+  });
+  setTimeout(()=>{
+    const av = cor.querySelector(".map-node.avail");
+    if(av) av.scrollIntoView({block:"center", behavior:"smooth"});
+  }, 60);
+  updateTopbar();
+}
+
+function enterNode(nd, st){
+  switch(nd.type){
+    case "battle": case "battleB":
+      startBattle(nd.enemy, {bonus:nd.bonus}); break;
+    case "elite":
+      startBattle(nd.enemy, {}); break;
+    case "boss":
+      startBattle("kaicho", {}); break;
+    case "dojo":
+      playStory([
+        {bg:"#0a0e16", sp:"", tx:"軋む渡り廊下を渡ると、月明かりの剣道場。\n奥の掛け軸には、力強い二文字。\n\n──『本能』", port:"👺"}
+      ], ()=> startBattle("hiroshi", {}));
+      break;
+    case "home":
+      showScreen("screen-over");
+      $("over-main").textContent = "─ 凱 旋 ─";
+      $("over-sub").textContent = "委員会は去り、学校は静けさを取り戻した。\n2G JONESの授業は、明日も続く。\n\n(剣道場の亡霊は、まだ待っている……)";
+      run = null; updateTopbar();
+      break;
+    case "card":
+      showReward(REWARD_POOL, 1, "🃏 落とし物のカード", "教室の机の中に、カードが挟まっていた。1枚選べ。", ()=>advanceStep());
+      break;
+    case "upgrade":
+      showUpgrade(()=>advanceStep());
+      break;
+    case "shop":
+      openShop(); break;
+    case "event":
+      openEvent(); break;
+  }
+}
+
+function advanceStep(){
+  if(!run) return;
+  if(run.bossDone){ renderMap(); showScreen("screen-map"); return; }
+  run.map[run.step].done = true;
+  run.step++;
+  if(run.step >= run.map.length){
+    if(run.area < 3){
+      run.area++;
+      run.step = 0;
+      run.map = genArea(run.area);
+      banner("─ " + AREAS[run.area-1].name + " ─", AREAS[run.area-1].sub, false, 1800)
+        .then(()=>{ renderMap(); showScreen("screen-map"); });
+      return;
+    }
+  }
+  renderMap();
+  showScreen("screen-map");
+}
+
+/* =========================================================
+   REWARD / PICKERS
+   ========================================================= */
+function pickN(pool, n){
+  return shuffle([...new Set(pool)]).slice(0,n);
+}
+
+function showReward(pool, tier, title, desc, cb){
+  showScreen("screen-choice");
+  $("choice-title").textContent = title;
+  $("choice-desc").textContent = desc;
+  const cc = $("choice-cards"); cc.innerHTML = "";
+  const cl = $("choice-list"); cl.innerHTML = "";
+  const picks = pickN(pool, 3);
+  picks.forEach(cid=>{
+    const el = cardEl(cid, true);
+    el.onclick = ()=>{
+      run.deck.push(cid);
+      fpop($("choice-title"), CARDS[cid].n + " を入手!", "#e8c76a");
+      setTimeout(cb, 500);
+    };
+    cc.appendChild(el);
+  });
+  const skip = document.createElement("button");
+  skip.className = "choice-btn";
+  skip.innerHTML = "受け取らない<small>デッキを薄く保つのも、また教育。</small>";
+  skip.onclick = cb;
+  cl.appendChild(skip);
+}
+
+function pickFromDeck(title, desc, filter, cb, cancelCb){
+  showScreen("screen-choice");
+  $("choice-title").textContent = title;
+  $("choice-desc").textContent = desc;
+  const cc = $("choice-cards"); cc.innerHTML = "";
+  const cl = $("choice-list"); cl.innerHTML = "";
+  run.deck.forEach((cid, idx)=>{
+    if(filter && !filter(cid)) return;
+    const el = cardEl(cid, false);
+    el.onclick = ()=>cb(cid, idx);
+    cc.appendChild(el);
+  });
+  const cancel = document.createElement("button");
+  cancel.className = "choice-btn";
+  cancel.textContent = "やめておく";
+  cancel.onclick = cancelCb || cb.bind(null, null, -1);
+  cl.appendChild(cancel);
+}
+
+function showUpgrade(cb){
+  pickFromDeck("⬆️ カード強化", "赤ペンで指導要録に書き込む。\n選んだ種類のカードは、このラン中ずっと +1/+1。",
+    cid=>CARDS[cid].kind==="u",
+    (cid)=>{
+      if(cid){ run.upgrades[cid] = (run.upgrades[cid]||0) + 1; }
+      cb();
+    },
+    ()=>cb());
+}
+
+/* =========================================================
+   SHOP
+   ========================================================= */
+const SHOP_QUOTES = [
+  "「いらっしゃい。……ああ、JONES先生かい。老けたねぇ」",
+  "「委員会には内緒だよ。あたしゃ、昔のやり方が嫌いじゃないんでね」",
+  "「威厳が足りないねぇ。出直しといで」",
+  "「まいど。……その竹刀、誰のかは聞かないどくれよ」"
+];
+let shopState = null;
+
+function priceOf(cid){ return [25,40,65][CARDS[cid].r] || 25; }
+
+function openShop(){
+  const cards = pickN(REWARD_POOL,2).concat(pickN(ELITE_POOL,1));
+  shopState = {
+    items: [
+      ...cards.map(cid=>({kind:"card", cid, price:priceOf(cid), sold:false})),
+      {kind:"manual", price:45, sold:false},
+      {kind:"remove", price:30, sold:false},
+      {kind:"candle", price:50, sold:false}
+    ]
+  };
+  renderShop($("shop-quote").textContent = rnd(SHOP_QUOTES));
+  showScreen("screen-shop");
+}
+
+function renderShop(){
+  const box = $("shop-items");
+  box.innerHTML = "";
+  shopState.items.forEach((it, i)=>{
+    const d = document.createElement("div");
+    d.className = "shop-item" + (it.sold ? " soldout":"");
+    let icon, name, desc;
+    if(it.kind==="card"){ const c=CARDS[it.cid]; icon=c.icon; name=c.n; desc=(c.kind==="u"?`⚔${c.atk}/♥${c.hp} `:"") + (c.desc || (c.ab||[]).map(a=>AB_TEXT[a]).join("・")) + " ─ " + c.fl; }
+    if(it.kind==="manual"){ icon="📔"; name="絶版の生徒指導マニュアル"; desc="カード1種類をこのラン中 +1/+1 に強化する。"; }
+    if(it.kind==="remove"){ icon="🗑"; name="カード除去サービス"; desc="デッキから不要なカードを1枚、シュレッダーにかける。"; }
+    if(it.kind==="candle"){ icon="🕯"; name="赤い蝋燭"; desc="消えたろうそくを一本、灯し直す(残機回復)。"; }
+    d.innerHTML = `<div class="si-icon">${icon}</div><div class="si-body"><div class="si-name">${name}</div><div class="si-desc">${desc}</div></div>`;
+    const btn = document.createElement("button");
+    btn.className = "si-buy";
+    btn.textContent = "威厳 " + it.price;
+    btn.disabled = it.sold || save.igen < it.price || (it.kind==="candle" && run.candles>=2) || (it.kind==="remove" && run.deck.length<=6);
+    btn.onclick = ()=>buyItem(i);
+    d.appendChild(btn);
+    box.appendChild(d);
+  });
+}
+
+function buyItem(i){
+  const it = shopState.items[i];
+  if(it.sold || save.igen < it.price) return;
+  if(it.kind==="card"){
+    addIgen(-it.price); it.sold = true;
+    run.deck.push(it.cid);
+    $("shop-quote").textContent = "「まいどあり。大事に使いなよ」";
+    renderShop();
+  } else if(it.kind==="candle"){
+    addIgen(-it.price); it.sold = true;
+    run.candles = 2;
+    $("shop-quote").textContent = "「火の始末にゃ、気をつけな」";
+    renderShop(); updateTopbar();
+  } else if(it.kind==="manual"){
+    pickFromDeck("📔 生徒指導マニュアル","強化するカードの種類を選べ(+1/+1)。", cid=>CARDS[cid].kind==="u",
+      (cid)=>{
+        if(cid){ addIgen(-it.price); it.sold = true; run.upgrades[cid]=(run.upgrades[cid]||0)+1; }
+        renderShop(); showScreen("screen-shop");
+      });
+  } else if(it.kind==="remove"){
+    pickFromDeck("🗑 カード除去","シュレッダーにかけるカードを選べ。", null,
+      (cid, idx)=>{
+        if(cid!==null && idx>=0){ addIgen(-it.price); it.sold = true; run.deck.splice(idx,1); }
+        renderShop(); showScreen("screen-shop");
+      });
+  }
+}
+
+function leaveShop(){ advanceStep(); }
+
+/* =========================================================
+   RANDOM EVENTS
+   ========================================================= */
+const EVENTS = [
+  { id:"cry", icon:"😢", title:"泣いている生徒",
+    tx:"非常階段の踊り場で、生徒がひとり泣いている。\n「先生……ぼく、もう学校やめたい……」",
+    choices:[
+      {label:"そっと慰める", sub:"ろうそくを1本灯し直す(満タンなら威厳+15)",
+        fn:()=>{ if(run.candles<2){run.candles++; return "生徒は少し笑った。\n……胸の奥のろうそくに、火が灯る。(🕯回復)";} addIgen(15); return "生徒は少し笑った。\n「先生、変わってないね」(威厳+15)"; }},
+      {label:"喝を入れる", sub:"ランダムなカードを獲得。ただし『モンペの電話』も混入",
+        fn:()=>{ const c=rnd(REWARD_POOL); run.deck.push(c); run.deck.push("curse");
+          return "「やめてどうする!! 走れ!!」\n生徒は泣きながら走り出し、何かを落としていった。\n(『"+CARDS[c].n+"』を獲得。……その夜、保護者から着信が。『モンペの電話』がデッキに混入)"; }}
+    ]},
+  { id:"colleague", icon:"💪", title:"昔の同僚と再会",
+    tx:"体育教師・熱血 剛。委員会に唯一屈しなかった男が、\n腕を組んで立っていた。\n「JONES……! 生きとったか!!」",
+    choices:[
+      {label:"思い出話に花を咲かせる", sub:"デッキからカードを1枚除去できる",
+        fn:"remove"},
+      {label:"勝負を受ける", sub:"強敵戦。勝てば激レアカードを選べる",
+        fn:"fight_colleague"}
+    ]},
+  { id:"rest", icon:"🛏", title:"保健室で休む",
+    tx:"保健室のベッドが、妙に温かく整えられている。\n消毒液の匂いに混じって、甘い香りがした。",
+    choices:[
+      {label:"少し眠る", sub:"ろうそく回復。ただし低確率で『ヌシ』が現れる…",
+        fn:()=>{ if(Math.random()<0.12) return "fight_nushi";
+          run.candles=2; return "夢も見ずに眠った。目覚めると、枕元に\n『おだいじに』と書かれたメモ。(🕯全回復)"; }},
+      {label:"何かがいる気がする。立ち去る", sub:"何も起こらない",
+        fn:()=>"カーテンの奥で、何かが身じろぎした気がした。\n……関わらないのが正解だ。"}
+    ]},
+  { id:"bread", icon:"🍞", title:"購買の残りパン",
+    tx:"購買部のワゴンに、売れ残りの焼きそばパンがひとつ。\n貼り紙には「ご自由にどうぞ(委員会非公認)」。",
+    choices:[
+      {label:"ありがたく頂く", sub:"威厳+15",
+        fn:()=>{ addIgen(15); return "うまい。現役時代の味だ。\n心なしか、背筋が伸びる。(威厳+15)"; }},
+      {label:"半分だけ頂く", sub:"威厳+5、たまに良いことがある",
+        fn:()=>{ addIgen(5); if(Math.random()<0.4){ run.deck.push("kiai"); return "残り半分に「先生へ」とメモが添えられていた。\n(威厳+5、『気合注入』を獲得)"; } return "誰かのために半分残す。それも教育だ。(威厳+5)"; }}
+    ]},
+  { id:"techo", icon:"📓", title:"落とし物の生徒手帳",
+    tx:"廊下に生徒手帳が落ちている。\n開くと、びっしりと書き込まれた決意の文字。\n「いつか、JONES先生みたいな大人になる」",
+    choices:[
+      {label:"胸に刻む", sub:"カード1種類を強化(+1/+1)",
+        fn:"upgrade"},
+      {label:"職員室に届ける", sub:"威厳+20",
+        fn:()=>{ addIgen(20); return "落とし物は届ける。当たり前のことを、当たり前に。\n(威厳+20)"; }}
+    ]},
+  { id:"janitor", icon:"🧹", title:"用務員のおじさん",
+    tx:"焼却炉の前で、用務員のおじさんが手招きしている。\n「先生よ。……燃やしたいモン、あるんじゃねぇか?」",
+    choices:[
+      {label:"デッキのカードを燃やす", sub:"カードを1枚除去できる",
+        fn:"remove"},
+      {label:"世間話をする", sub:"威厳+10",
+        fn:()=>{ addIgen(10); return "「あんたが暴れてた頃のほうが、学校は明るかったよ」\n炎が、ぱちんと爆ぜた。(威厳+10)"; }}
+    ]},
+  { id:"roof", icon:"🌙", title:"屋上の風",
+    tx:"鍵の壊れた屋上。夜風が吹き抜ける。\n遠くの街の灯りを見ていると、内から何かが疼いた。",
+    choices:[
+      {label:"雄叫びを上げる", sub:"『本能の力』を1枚獲得",
+        fn:()=>{ run.deck.push("honno"); return "「うおおおおおッ!!」\n血が滾る。……これが、本能。\n(『本能の力』を獲得)"; }},
+      {label:"静かに深呼吸する", sub:"威厳+15",
+        fn:()=>{ addIgen(15); return "冷たい空気が肺を満たす。\n頭が冴えた。(威厳+15)"; }}
+    ]},
+  { id:"ghost", icon:"👻", title:"亡霊の噂話",
+    tx:"トイレの前で、生徒の幽霊(?)がささやく。\n「ねぇ知ってる? 剣道場にね、『初代』が出るんだよ。\n……あなたの匂い、あの人にそっくり」",
+    choices:[
+      {label:"詳しく聞く", sub:"50%で激レアカード、50%で何もなし",
+        fn:()=>{ if(Math.random()<0.5){ const c=rnd(["tekken","bassoku","album"]); run.deck.push(c);
+            return "「これ、あの人の落とし物」\n小さな手が、カードを差し出した。\n(『"+CARDS[c].n+"』を獲得)"; }
+          return "振り向くと、誰もいなかった。\n蛇口から、水が一滴。"; }},
+      {label:"聞かなかったことにする", sub:"何も起こらない",
+        fn:()=>"夜の学校で、幽霊の話は聞くもんじゃない。\n早足で立ち去った。"}
+    ]},
+  { id:"meeting", icon:"🪑", title:"職員会議の残骸",
+    tx:"会議室に、書きかけの議事録が散乱している。\n議題:『2G JONES的指導法の完全撲滅について』\n……全ページ、反対意見は黒塗りだ。",
+    choices:[
+      {label:"黒塗りの下を読む", sub:"『反省文』を2枚獲得",
+        fn:()=>{ run.deck.push("hansei"); run.deck.push("hansei");
+          return "黒塗りの下には、同僚たちの本音があった。\n「JONES先生を、返してほしい」\n(『反省文』×2を獲得)"; }},
+      {label:"議事録を破り捨てる", sub:"威厳+10、すっきりする",
+        fn:()=>{ addIgen(10); return "ビリビリビリ。\n…………すっきりした。(威厳+10)"; }}
+    ]},
+  { id:"dog", icon:"🐕", title:"校庭の犬",
+    tx:"校庭の隅、犬小屋の前に一匹の老犬。\nかつてJONESが拾って世話をしていた、ポチ公だ。\n尻尾が、ちぎれんばかりに振られている。",
+    choices:[
+      {label:"連れて行く", sub:"『忠犬ポチ公』を獲得",
+        fn:()=>{ run.deck.push("pochi"); return "「……行くぞ、ポチ公。最後の授業だ」\nワン!!\n(『忠犬ポチ公』を獲得)"; }},
+      {label:"頭を撫でるだけにする", sub:"ろうそく1本回復",
+        fn:()=>{ if(run.candles<2) run.candles++; return "ざらざらの毛並み。変わらない体温。\n少しだけ、心が軽くなった。(🕯回復)"; }}
+    ]}
+];
+
+function openEvent(){
+  const avail = EVENTS.filter(e=>!run.usedEvents.includes(e.id));
+  const ev = rnd(avail.length ? avail : EVENTS);
+  run.usedEvents.push(ev.id);
+  $("event-icon").textContent = ev.icon;
+  $("event-title").textContent = ev.title;
+  $("event-text").textContent = ev.tx;
+  const box = $("event-choices");
+  box.innerHTML = "";
+  ev.choices.forEach(ch=>{
+    const b = document.createElement("button");
+    b.className = "choice-btn";
+    b.innerHTML = ch.label + "<small>" + ch.sub + "</small>";
+    b.onclick = ()=>resolveEventChoice(ch);
+    box.appendChild(b);
+  });
+  showScreen("screen-event");
+}
+
+function resolveEventChoice(ch){
+  if(ch.fn==="remove"){
+    pickFromDeck("🗑 カードを手放す","過去をひとつ、燃やして手放す。", null,
+      (cid, idx)=>{ if(cid!==null&&idx>=0) run.deck.splice(idx,1); advanceStep(); });
+    return;
+  }
+  if(ch.fn==="upgrade"){ showUpgrade(()=>advanceStep()); return; }
+  if(ch.fn==="fight_colleague"){ startEventFight("colleague"); return; }
+  let result = ch.fn();
+  if(result==="fight_nushi"){
+    eventResult("……目を開けると、白いカーテン越しに\n巨大な影が座っていた。\n「あらぁ。……いい寝顔だったわよ」", ()=>startEventFight("nushi"));
+    return;
+  }
+  eventResult(result, ()=>advanceStep());
+}
+
+function eventResult(text, cb){
+  $("event-text").textContent = text;
+  const box = $("event-choices");
+  box.innerHTML = "";
+  const b = document.createElement("button");
+  b.className = "choice-btn";
+  b.textContent = "先へ進む";
+  b.onclick = cb;
+  box.appendChild(b);
+}
+
+function startEventFight(eid){
+  startBattle(eid, {
+    onWin:(gained)=>{
+      const pool = eid==="colleague" ? ["tekken","bassoku","album","honno","ohuku"] : ELITE_POOL;
+      showReward(pool, 2, "激闘の果てに", "威厳+"+gained+"。褒美のカードを選べ。", ()=>advanceStep());
+    },
+    onLose:async ()=>{
+      run.candles--;
+      updateTopbar();
+      if(run.candles<=0){ runOver(); return; }
+      await banner("敗 北","ろうそくが一本消えた……(残り "+"🕯".repeat(run.candles)+")\n相手は静かに去っていった。", true, 2200);
+      advanceStep();
+    }
+  });
+}
+
+/* =========================================================
+   STORY PLAYER
+   ========================================================= */
+let story = null;
+function playStory(lines, cb){
+  story = {lines, i:0, cb};
+  $("story-skip").style.display = lines.length>2 ? "block" : "none";
+  showScreen("screen-story");
+  renderStoryLine();
+}
+function renderStoryLine(){
+  const L = story.lines[story.i];
+  $("story-bg").style.background = `radial-gradient(ellipse at 50% 35%, ${L.bg} 0%, #020308 90%)`;
+  $("story-speaker").textContent = L.sp || "";
+  $("story-text").textContent = L.tx;
+  const port = $("story-port");
+  if(L.port==="jones") port.innerHTML = `<div style="width:120px;height:120px;border-radius:50%;overflow:hidden;border:2px solid #33405f">${jonesSVG("beard")}</div>`;
+  else if(L.port==="jones_young") port.innerHTML = `<div style="width:120px;height:120px;border-radius:50%;overflow:hidden;border:2px solid #33405f">${jonesSVG("young")}</div>`;
+  else if(L.port==="jones_awk") port.innerHTML = `<div style="width:120px;height:120px;border-radius:50%;overflow:hidden;border:2px solid #a02828">${jonesSVG("awk")}</div>`;
+  else port.innerHTML = L.port ? `<span class="bigmoji">${L.port}</span>` : "";
+}
+function storyNext(){
+  if(!story) return;
+  story.i++;
+  if(story.i >= story.lines.length){ const cb = story.cb; story = null; cb(); }
+  else renderStoryLine();
+}
+function storySkip(){
+  if(!story) return;
+  const cb = story.cb; story = null; cb();
+}
+
+/* =========================================================
+   DECK OVERLAY / TOPBAR / SCREENS
+   ========================================================= */
+function openDeck(){
+  const box = $("od-cards");
+  box.innerHTML = "";
+  const deck = B ? B.deck.concat(B.hand, B.discard) : (run ? run.deck : []);
+  if(!deck.length){ box.innerHTML = '<div style="color:#5b6684;font-size:12px;padding:30px">まだデッキがない。ランを開始しよう。</div>'; }
+  deck.slice().sort((a,b)=>CARDS[a].cost-CARDS[b].cost).forEach(cid=> box.appendChild(cardEl(cid,false)) );
+  $("overlay-deck").classList.add("show");
+}
+function closeDeck(){ $("overlay-deck").classList.remove("show"); }
+
+function updateTopbar(){
+  $("tb-igen").textContent = "威厳 " + save.igen;
+  $("tb-candles").innerHTML = run ? '<span class="candle-lit">🕯</span>'.repeat(run.candles) + '<span class="candle-out">🕯</span>'.repeat(Math.max(0,2-run.candles)) : "";
+  $("tb-area").textContent = run ? AREAS[run.area-1].name + (B ? " ─ 戦闘中" : "") : "";
+}
+
+function showScreen(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  $(id).classList.add("active");
+}
+
+/* =========================================================
+   TITLE / INIT
+   ========================================================= */
+function toTitle(){
+  run = null; B = null;
+  $("btn-skip").style.display = save.prologueDone ? "block" : "none";
+  $("btn-start").textContent = save.prologueDone ? "はじめから(プロローグを見る)" : "はじめから";
+  let sub = "所持している威厳 ─ " + save.igen;
+  if(save.trueCleared) sub += "\n【本能の力の真の継承者】";
+  else if(save.cleared) sub += "\n【委員会撃破済 ─ 剣道場が待つ】";
+  $("title-igen").textContent = sub;
+  updateTopbar();
+  showScreen("screen-title");
+}
+
+function titleStart(skip){
+  newRun();
+  updateTopbar();
+  if(skip){
+    playStory(ST_RESTART, ()=>beginRun());
+  } else {
+    playStory(ST_PROLOGUE, ()=> startBattle("tutorial", {}));
+  }
+}
+
+loadSave();
+toTitle();
+</script>
+</body>
+</html>
