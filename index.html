@@ -381,12 +381,16 @@ function wipeSave(){ if(confirm("威厳ポイントを含む全データを消�
 /* ---------- ability texts ---------- */
 const AB_TEXT = {
   haste:"速攻", sweep:"薙ぎ払い", snipe:"狙撃", double:"連撃",
-  counter:"返り討ち", rally:"連帯", energize:"学級運営", trample:"貫通", guard:"忖度"
+  counter:"返り討ち", rally:"連帯", energize:"学級運営", trample:"貫通", guard:"忖度",
+  fighter:"闘魂", feral:"血脈", pack:"組立", buddy:"相棒", legacy:"形見"
 };
 const AB_DESC = {
   haste:"出したターンに即攻撃", sweep:"正面と両隣のレーンを攻撃", snipe:"最も体力の低い敵を狙う",
   double:"1ターンに2回攻撃", counter:"攻撃してきた敵に2ダメージ", rally:"味方が場に出るたび攻撃+1",
-  energize:"毎ターン気合+1", trample:"余剰ダメージを相手本体へ", guard:"本体への攻撃を肩代わりする"
+  energize:"毎ターン気合+1", trample:"余剰ダメージを相手本体へ", guard:"本体への攻撃を肩代わりする",
+  fighter:"味方が倒れるたび攻撃+1", feral:"本能の力を使うたび追加で攻撃+1",
+  pack:"攻撃時、隣の味方1体につき攻撃+1", buddy:"場に出た時、同じカードを手札に加える",
+  legacy:"破壊された時、カードを1枚引く"
 };
 
 /* ---------- player cards ----------
@@ -429,6 +433,20 @@ const CARDS = {
              desc:"ランダムな体罰カード2枚を手札に加える"},
   osu:      {n:"気合の雄叫び", cost:1, kind:"s", tb:0, icon:"📢", r:1, target:"none", fl:"「押忍」以外の返事は認めない。",
              desc:"このターン気合+1、カードを1枚引く"},
+  konjo:    {n:"男泣きの背中", cost:3, kind:"u", tb:1, atk:2, hp:3, ab:["fighter"], icon:"🥋", r:1, fl:"倒れた仲間の分まで、拳は重くなる。"},
+  ketsumyaku:{n:"鬼の血脈",    cost:2, kind:"u", tb:1, atk:1, hp:2, ab:["feral"], icon:"🩸", r:1, fl:"初代の面影が、拳に宿る。"},
+  kumitaiso:{n:"組体操",      cost:2, kind:"u", tb:1, atk:1, hp:3, ab:["pack"], icon:"🤸", r:0, fl:"土台があってこその、大技。"},
+  kibasen:  {n:"騎馬戦の大将", cost:4, kind:"u", tb:1, atk:3, hp:4, ab:["pack"], icon:"🐎", r:2, fl:"支える三人がいれば、無敵。"},
+  nichoku:  {n:"日直コンビ",  cost:1, kind:"u", tb:1, atk:1, hp:1, ab:["buddy"], icon:"👥", r:0, fl:"日直は、二人で一つ。"},
+  okitegami:{n:"教え子の置き手紙", cost:1, kind:"u", tb:0, atk:0, hp:2, ab:["legacy"], icon:"💌", r:0, fl:"『先生、ありがとう』…それだけで戦える。"},
+  chorei:   {n:"全校朝礼",    cost:2, kind:"s", tb:0, icon:"🎌", r:1, target:"none", fl:"月曜の朝は、魂の点呼から。",
+             desc:"味方カード全体を+1/+1"},
+  tokkun:   {n:"放課後特訓",  cost:3, kind:"s", tb:1, icon:"🌇", r:2, target:"none", fl:"日が暮れるまで、帰さん。",
+             desc:"味方カード全体が即座に攻撃する"},
+  encho:    {n:"延長授業",    cost:1, kind:"s", tb:0, icon:"⏰", r:1, target:"punit", fl:"チャイムは目安だ。",
+             desc:"味方カード1体が即座に攻撃する"},
+  taigaku:  {n:"退学届",      cost:2, kind:"s", tb:0, icon:"🧾", r:1, target:"eunit", tfilter:u=>u.stun>0||u.atk<=0, fl:"……荷物をまとめろ。",
+             desc:"行動不能か攻撃力0の敵カードを破壊する"},
   honno:    {n:"本能の力",    cost:2, kind:"s", tb:0, icon:"👹", r:2, target:"none", fl:"血が、教鞭が、疼く。",
              desc:"味方全体の攻撃力+1(永続・重ねがけ可)。3回で覚醒"},
   curse:    {n:"モンペの電話", cost:2, kind:"s", tb:0, icon:"📞", r:0, target:"none", curse:1, fl:"「うちの子に限って」…夜9時の着信。",
@@ -437,8 +455,8 @@ const CARDS = {
 for(const k in CARDS) CARDS[k].id = k;
 
 const STARTER_DECK = ["binta","binta","genkotsu","genkotsu","harisen","sekkyo","rouka","seiza","ground","honno"];
-const REWARD_POOL   = ["binta","genkotsu","kokuban","harisen","chalk","shusseki","mop","rentai","ohuku","shinai","ketsubat","sekkyo","baketsu","iincho","rouka","seiza","ground","hansei","shukudai","team","aisek","kiai","osu"];
-const ELITE_POOL    = ["tekken","bassoku","ohuku","ketsubat","album","honno","shinai","iincho","shukudai","aisek"];
+const REWARD_POOL   = ["binta","genkotsu","kokuban","harisen","chalk","shusseki","mop","rentai","ohuku","shinai","ketsubat","sekkyo","baketsu","iincho","rouka","seiza","ground","hansei","shukudai","team","aisek","kiai","osu","konjo","ketsumyaku","kumitaiso","nichoku","okitegami","chorei","encho","taigaku"];
+const ELITE_POOL    = ["tekken","bassoku","ohuku","ketsubat","album","honno","shinai","iincho","shukudai","aisek","tokkun","kibasen","konjo","ketsumyaku"];
 
 /* ---------- enemy units ---------- */
 const EU = {
@@ -533,7 +551,7 @@ const ENEMIES = {
 };
 for(const k in ENEMIES) ENEMIES[k].id = k;
 
-const CONVERT_NAMES = { binta:"和解の握手", genkotsu:"優しい撫でおろし", harisen:"うちわの風", chalk:"励ましの手紙", shusseki:"皆勤賞の表彰", mop:"清掃ボランティア", rentai:"集団カウンセリング", ohuku:"両手のハイタッチ", shinai:"麦茶のお酌", ketsubat:"キャッチボール", tekken:"感涙の抱擁", bassoku:"返却された竹刀", kokuban:"消された黒板" };
+const CONVERT_NAMES = { konjo:"涙腺崩壊の抱擁", ketsumyaku:"穏やかな血脈", kumitaiso:"みんなでストレッチ", nichoku:"仲直りの日直", kibasen:"肩車ボランティア", binta:"和解の握手", genkotsu:"優しい撫でおろし", harisen:"うちわの風", chalk:"励ましの手紙", shusseki:"皆勤賞の表彰", mop:"清掃ボランティア", rentai:"集団カウンセリング", ohuku:"両手のハイタッチ", shinai:"麦茶のお酌", ketsubat:"キャッチボール", tekken:"感涙の抱擁", bassoku:"返却された竹刀", kokuban:"消された黒板" };
 
 /* ---------- stories ---------- */
 const ST_PROLOGUE = [
@@ -724,7 +742,7 @@ function renderBattle(){
     const s = document.createElement("div");
     s.className = "slot"; s.id = "es"+i;
     if(B.en[i]) s.appendChild(unitEl(B.en[i]));
-    if(B.pend && B.pend.target==="eunit" && B.en[i]) { s.classList.add("targetable"); s.onclick = ()=>castAt("e",i); }
+    if(B.pend && B.pend.target==="eunit" && B.en[i] && (!B.pend.tfilter || B.pend.tfilter(B.en[i]))) { s.classList.add("targetable"); s.onclick = ()=>castAt("e",i); }
     eS.appendChild(s);
   }
   for(let i=0;i<4;i++){
@@ -774,8 +792,8 @@ function selectHand(idx){
   if(c.kind==="s"){
     if(c.target==="none"){ castSpell(idx, null, null); return; }
     const pool = c.target==="eunit" ? B.en : B.p;
-    if(!pool.some(u=>u)){ msg("対象となるカードが場にない。"); B.sel=-1; renderBattle(); return; }
-    B.pend = {idx, target:c.target};
+    if(!pool.some(u=>u && (!c.tfilter || c.tfilter(u)))){ msg("対象にできるカードが場にない。"); B.sel=-1; renderBattle(); return; }
+    B.pend = {idx, target:c.target, tfilter:c.tfilter};
     msg(c.target==="eunit" ? "対象の敵カードを選べ。" : "対象の味方カードを選べ。");
   } else {
     msg("置きたいマスを選べ。(もう一度カードを押すと解除)");
@@ -796,6 +814,10 @@ async function placeUnit(lane){
   onPlayerCardPlayed(c);
   // rally
   for(const a of B.p) if(a && a!==u && a.ab.includes("rally")){ a.atk++; }
+  if(u.ab.includes("buddy") && B.hand.length<8){
+    B.hand.push(cid);
+    fpop($("b-hand"), "相棒を呼んだ!");
+  }
   renderBattle();
   fpop($("ps"+lane), c.n);
   await sleep(250);
@@ -848,6 +870,11 @@ async function castSpell(idx, side, lane){
     case "honno": {
       B.instinct++;
       for(const u of B.p) if(u) u.atk++;
+      for(const u of B.p) if(u && u.ab.includes("feral")){
+        u.atk++;
+        const fel = $("u"+u.uid);
+        fpop(fel && fel.parentElement, "血脈 ⚔+1", "#e05040");
+      }
       if(B.e.id==="kaicho" && B.ctRecord>0){ B.ctRecord=0; fpop(null,"指導記録が消し飛んだ!","#c86a5a"); }
       if(B.instinct===3){
         renderBattle();
@@ -856,6 +883,24 @@ async function castSpell(idx, side, lane){
         fpop(null,"本能の力 +1 (計"+B.instinct+")","#e05040");
       }
       break; }
+    case "chorei":
+      for(const u of B.p) if(u){ u.atk++; u.hp++; u.mhp++; }
+      fpop(null,"全校朝礼:味方全体+1/+1"); break;
+    case "tokkun":
+      fpop(null,"放課後特訓:総攻撃!");
+      renderBattle();
+      await sleep(300);
+      for(let i=0;i<4;i++){
+        if(!B || B.over) break;
+        if(B.p[i]) await unitAttack(B.p[i], i, true);
+      }
+      break;
+    case "encho":
+      fpop(tEl,"延長授業!");
+      await unitAttack(t, lane, true); break;
+    case "taigaku":
+      fpop(tEl,"退学届……");
+      await killUnit(t); break;
     case "curse":
       fpop(null,"『うちの子に限って!』…何も起きなかった。"); break;
   }
@@ -906,6 +951,16 @@ async function killUnit(t){
   const arr = t.enemy ? B.en : B.p;
   const i = arr.indexOf(t);
   if(i>=0) arr[i] = null;
+  for(const a of arr){
+    if(a && a.ab.includes("fighter")){
+      a.atk++;
+      const ael = $("u"+a.uid);
+      fpop(ael && ael.parentElement, "闘魂 ⚔+1", "#e0956a");
+    }
+  }
+  if(t.ab.includes("legacy") && !t.enemy){
+    if(drawCard()) fpop($("b-hand"), "形見:1枚ドロー", "#e8c76a");
+  }
   if(t.cid==="kocho"){
     bubble("校長「ひ、ひぃぃ…! も、もう庇いきれません…!」");
     fpop(null,"忖度の壁が崩れた!","#e8c76a");
@@ -951,7 +1006,20 @@ async function unitAttack(u, lane, isHaste){
   const times = u.ab.includes("double") ? 2 : 1;
   for(let k=0;k<times;k++){
     if(!B || B.over || u.hp<=0) break;
-    if(u.atk<=0) break;
+    let atkVal = u.atk;
+    if(u.ab.includes("pack")){
+      const side = u.enemy ? B.en : B.p;
+      const li = side.indexOf(u);
+      let adj = 0;
+      if(li>0 && side[li-1]) adj++;
+      if(li>=0 && li<3 && side[li+1]) adj++;
+      if(adj>0){
+        atkVal += adj;
+        const pel = $("u"+u.uid);
+        fpop(pel && pel.parentElement, "組立 ⚔+"+adj, "#e0956a");
+      }
+    }
+    if(atkVal<=0) break;
     const el = $("u"+u.uid);
     if(el) el.classList.add(u.enemy?"atk-down":"atk-up");
     await sleep(190);
@@ -967,11 +1035,11 @@ async function unitAttack(u, lane, isHaste){
     for(const t of targets){
       if(!B || B.over) break;
       if(t.unit && t.unit.hp>0){
-        const over = u.atk - t.unit.hp;
-        await damageUnit(t.unit, u.atk, u);
+        const over = atkVal - t.unit.hp;
+        await damageUnit(t.unit, atkVal, u);
         if(u.ab.includes("trample") && over>0 && !B.over) await faceDamage(u, over);
       } else {
-        await faceDamage(u, u.atk);
+        await faceDamage(u, atkVal);
       }
     }
     if(el) el.classList.remove("atk-down","atk-up");
