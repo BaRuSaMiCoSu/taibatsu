@@ -36,6 +36,7 @@ svg{display:block}
 .choice-btn{background:linear-gradient(#151b2d,#0e1322);border:1px solid #33405f;color:#cfc8b4;padding:11px 12px;border-radius:5px;font-size:13px;text-align:left;line-height:1.5;width:100%}
 .choice-btn small{display:block;color:#7f8aa5;font-size:10px;margin-top:3px}
 .choice-btn:hover,.choice-btn:active{border-color:#c8a44a}
+.choice-btn.hl{border-color:#8a7440;box-shadow:inset 0 0 0 1px rgba(200,164,74,.25)}
 .choice-btn:disabled{opacity:.4;pointer-events:none}
 
 /* ===== title ===== */
@@ -74,6 +75,7 @@ svg{display:block}
 #map-head{text-align:center;padding:12px 8px 4px;position:relative}
 #map-floor{font-size:17px;letter-spacing:5px;color:#9aa5c2;text-shadow:0 0 12px rgba(120,140,200,.3)}
 #map-floor-sub{font-size:11px;color:#5b6684;margin-top:3px;letter-spacing:2px}
+.diff-tag{display:inline-block;font-size:9.5px;letter-spacing:1px;border:1px solid;border-radius:3px;padding:0 5px;margin-left:4px;vertical-align:1px}
 #map-exit{position:absolute;right:10px;top:10px;background:#1f8a4a;color:#e8fff0;font-size:9px;padding:2px 6px;box-shadow:0 0 12px rgba(58,255,138,.5);font-family:sans-serif}
 #map-scroll{flex:1;overflow-y:auto;padding:22px 0 40px;position:relative}
 #map-corridor{position:relative;width:min(90%,440px);margin:0 auto;display:flex;flex-direction:column-reverse;gap:30px;padding:10px 0}
@@ -472,7 +474,18 @@ let uidc = 1;
 
 /* ---------- persistent save ---------- */
 const SAVE_KEY = "taibatsu_2gjones_v1";
-let save = { igen:0, prologueDone:false, cleared:false, trueCleared:false, wins:0 };
+let save = { igen:0, prologueDone:false, cleared:false, trueCleared:false, wins:0, diff:"easy" };
+/* difficulty. atk: added to every enemy card, win: chalk needed on the enemy pan */
+const DIFFS = {
+  easy:  {n:"イージー", c:"#7ad890", atk:0, win:5, sub:"これまで通りの授業。"},
+  normal:{n:"ノーマル", c:"#e8c76a", atk:0, win:7, sub:"勝利に必要なダメージ +2(天秤7本で勝利)。"},
+  hard:  {n:"ハード",   c:"#e0604a", atk:1, win:7, sub:"敵カードの攻撃 +1、さらに勝利に必要なダメージ +2。"}
+};
+const curDiff = () => DIFFS[(run && run.diff) || "easy"] || DIFFS.easy;
+/* the prologue (tutorial + the arrest) always plays the same */
+const diffOn = () => !!B && B.e.id !== "tutorial" && B.e.id !== "police";
+const diffAtk = () => diffOn() ? curDiff().atk : 0;
+const winNeed = () => diffOn() ? curDiff().win : 5;
 function loadSave(){ try{ const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(s) save=Object.assign(save,s);}catch(e){} }
 function commitSave(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }catch(e){} }
 function addIgen(n){ save.igen=Math.max(0,save.igen+n); commitSave(); updateTopbar(); }
@@ -3197,6 +3210,8 @@ Object.assign(ENEMIES.shunin,   {p2:{line:"「……まだ隠しているな。�
 Object.assign(ENEMIES.counselor,{p2:{line:"「みんなでお話ししましょう? ……あなた以外の、みんなで」", special:"集団傾聴:2ターンごとに体罰カードが寝返る"}});
 Object.assign(ENEMIES.nushi,    {p2:{line:"「カーテン、開けちゃったわね……ふふ。もう、帰さない」", special:"大静養:天秤を戻し、敵カードも毎ターン全快"}});
 Object.assign(ENEMIES.kaicho,   {p2:{line:"「……いいだろう。私が直々に、君を処分する」", special:"完全無効化:体罰カードの攻撃を50%で無効"}});
+/* ひろし tuning: starting instinct, turns between surges per phase, instinct gained on phase 2, extra hp per instinct on summons */
+const HIRO = {start:1, every:[3, 2], p2:2, hpPer:0, resonate:false};
 Object.assign(ENEMIES.hiroshi,  {p2:{line:"「ほう……ならば儂も、本気の本能を見せてやろう」", special:"真・本能:敵の本能+2、さらに滾る"}});
 
 /* graduate (death) cards persist between runs */
@@ -3279,9 +3294,9 @@ function newPUnit(cid){
   return {uid:uidc++, cid, n:c.n, icon:c.icon, atk:c.atk + up + (B ? B.instinct : 0), hp:c.hp + up, mhp:c.hp + up,
           tb:!!c.tb, ab:(c.ab || []).slice(), stun:0, enemy:false, grad:!!c.grad};
 }
-function newEUnit(eid, bonusAtk){
-  const d = EU[eid] || CARDS[eid];
-  return {uid:uidc++, cid:eid, n:d.n, icon:d.icon, atk:d.atk + (bonusAtk || 0), hp:d.hp, mhp:d.hp,
+function newEUnit(eid, bonusAtk, bonusHp){
+  const d = EU[eid] || CARDS[eid], hp = d.hp + (bonusHp || 0);
+  return {uid:uidc++, cid:eid, n:d.n, icon:d.icon, atk:d.atk + (bonusAtk || 0) + diffAtk(), hp, mhp:hp,
           tb:!!d.tb, ab:(d.ab || []).slice(), stun:0, enemy:true};
 }
 
@@ -3292,7 +3307,7 @@ function startBattle(enemyId, opts){
         p:[null,null,null,null], en:[null,null,null,null], q:[null,null,null,null],
         deck:shuffle(run.deck.slice()), hand:[], discard:[],
         turn:1, energy:0, scale:0, instinct:0, phase:1,
-        ctConvert:0, ctRecord:0, ctHide:0, enInstinct:enemyId === "hiroshi" ? 1 : 0,
+        ctConvert:0, ctRecord:0, ctHide:0, enInstinct:enemyId === "hiroshi" ? HIRO.start : 0,
         mustDraw:false, sel:-1, pend:null, itemSel:-1, chalk:{side:0, n:0}, faceState:"" };
   showScreen("screen-battle");
   $("b-bg").innerHTML = ART.bg[SCENE_OF(e)]();
@@ -3354,7 +3369,7 @@ function tutorialHint(){
     B.mustDraw ? "毎ターン、山札か『生徒の名札』(0コスト 0/1)のどちらかを1枚引く。名札は壁にも生贄にもなる。"
                : "置いたら🔔でターン終了。正面の敵を攻撃し、いなければ相手本体へダメージ!",
     "一番奥の薄い列は『予告』。次のターンに敵がそこから前へ出てくる。先回りして構えろ。",
-    "本体へのダメージは天秤の『敵』側にチョークとして乗る。5本で勝利。カードは長押しで詳細が見られる。"
+    "本体へのダメージは天秤の『敵』側にチョークとして乗る。" + winNeed() + "本で勝利。カードは長押しで詳細が見られる。"
   ];
   msg(hints[Math.min(B.turn - 1, hints.length - 1)]);
 }
@@ -3546,20 +3561,23 @@ function renderHud(){
 }
 
 function renderScale(){
-  const s = B.scale;
-  const ang = -s * 4.5;
+  const s = B.scale, W = winNeed();
+  const ang = -(s > 0 ? s / W : s / 5) * 22.5;
   const rad = ang * Math.PI / 180;
   document.querySelector("#b-scale .beam").style.transform = `rotate(${ang}deg)`;
   $("pan-e").style.top = (4 - 67 * Math.sin(rad)) + "px";
   $("pan-p").style.top = (4 + 67 * Math.sin(rad)) + "px";
   const side = s > 0 ? 1 : s < 0 ? -1 : 0, n = Math.abs(s);
   const prev = B.chalk;
-  const pos = [[8,9],[19,9],[30,9],[13,13],[25,13]];
+  const POS5 = [[8,9],[19,9],[30,9],[13,13],[25,13]], POS7 = [[3,9],[13,9],[23,9],[33,9],[8,13],[18,13],[28,13]];
+  $("pan-e").querySelector(".lb").textContent = "敵 " + Math.max(0, s) + "/" + W;
+  $("pan-p").querySelector(".lb").textContent = "自分 " + Math.max(0, -s) + "/5";
   for (const [pan, sd] of [["pan-e", 1], ["pan-p", -1]]) {
     const el = $(pan);
     el.querySelectorAll(".chalk").forEach(c => c.remove());
     if (side !== sd) continue;
-    for (let i = 0; i < Math.min(n, 5); i++) {
+    const pos = sd > 0 && W > 5 ? POS7 : POS5;
+    for (let i = 0; i < Math.min(n, pos.length); i++) {
       const c = document.createElement("div");
       c.className = "chalk" + ((prev.side !== sd || i >= prev.n) ? " drop" : "");
       c.style.left = pos[i][0] + "px"; c.style.bottom = pos[i][1] + "px";
@@ -3779,6 +3797,7 @@ async function castSpell(idx, side, lane){
       for (const u of B.p) if (u) u.atk++;
       for (const u of B.p) if (u && u.ab.includes("feral")) { u.atk++; fpop(uSlot(u), "血脈 ⚔+1", "#e05040"); }
       if (B.e.id === "kaicho" && B.ctRecord > 0) { B.ctRecord = 0; fpop(null, "指導記録が消し飛んだ!", "#c86a5a"); }
+      if (B.e.id === "hiroshi" && HIRO.resonate) { B.enInstinct++; for (const u of B.en.concat(B.q)) if (u) u.atk++; bubble("「ほう…その本能、儂の血も騒がせよる」"); fpop($("b-scene"), "本能の共鳴:敵の本能 +1", "#ff5040"); }
       if (B.instinct === 3) {
         renderBattle();
         await banner("覚 醒", "本能の力が全身を駆け巡る──\nネクタイを額に巻いた。もう誰にも止められない。", true, 1900);
@@ -3868,7 +3887,7 @@ async function killUnit(t){
   renderBattle();
 }
 
-function tiltScale(n){ B.scale = Math.max(-5, Math.min(5, B.scale + n)); }
+function tiltScale(n){ B.scale = Math.max(-5, Math.min(winNeed(), B.scale + n)); }
 
 async function faceDamage(attacker, dmg){
   if (!B || dmg <= 0) return;
@@ -4009,7 +4028,7 @@ async function enemyTurn(){
       renderBattle();
     }
   }
-  if (e.id === "hiroshi" && B.turn % (B.phase === 2 ? 2 : 3) === 0) {
+  if (e.id === "hiroshi" && B.turn % HIRO.every[B.phase - 1] === 0) {
     B.enInstinct++;
     for (const u of B.en.concat(B.q)) if (u) u.atk++;
     bubble("「本能が…滾るのう…!」");
@@ -4043,7 +4062,7 @@ async function spawnQueue(t, anim){
     budget -= unitCost(pick);
     const facingEmpty = free.filter(l => !B.p[l]);
     const lane = (facingEmpty.length && Math.random() < 0.6) ? rnd(facingEmpty) : rnd(free);
-    B.q[lane] = newEUnit(pick, e.id === "hiroshi" ? B.enInstinct : 0);
+    B.q[lane] = newEUnit(pick, e.id === "hiroshi" ? B.enInstinct : 0, e.id === "hiroshi" ? Math.floor(B.enInstinct * HIRO.hpPer) : 0);
     if (anim) { renderBattle(); fpop($("qs" + lane), B.q[lane].n); await sleep(240); }
   }
   if (anim) renderBattle();
@@ -4061,7 +4080,7 @@ function stealHand(t){
 function checkEnd(){
   if (!B) return true;
   if (B.over || B.halt) return true;
-  if (B.scale >= 5) {
+  if (B.scale >= winNeed()) {
     if (B.e.p2 && B.phase === 1) { B.halt = true; return true; }
     B.over = true; setTimeout(winBattle, 400); return true;
   }
@@ -4077,7 +4096,7 @@ async function phaseTwo(){
   B.halt = false; B.phase = 2;
   B.en = [null,null,null,null]; B.q = [null,null,null,null];
   B.scale = 0;
-  if (e.id === "hiroshi") B.enInstinct += 2;
+  if (e.id === "hiroshi") B.enInstinct += HIRO.p2;
   $("b-fig").classList.add("p2");
   $("b-especial").textContent = e.p2.special;
   renderBattle();
@@ -4196,7 +4215,7 @@ function itemText(key){
 }
 
 function newRun(prologue){
-  run = { deck:STARTER_DECK.slice(), candles:2, area:1, step:0, map:genArea(1), upgrades:{}, usedEvents:[],
+  run = { deck:STARTER_DECK.slice(), candles:2, area:1, step:0, map:genArea(1), upgrades:{}, usedEvents:[], diff:DIFFS[save.diff] ? save.diff : "easy",
           bossDone:false, items:prologue ? [] : [rnd(["akapen", "shussekibo"])], prologue:!!prologue };
 }
 function beginRun(){
@@ -4213,14 +4232,14 @@ function clearRun(){ try { localStorage.removeItem(RUN_KEY); } catch (e) {} }
 function loadRun(){ try { const r = JSON.parse(localStorage.getItem(RUN_KEY)); return r && r.deck ? r : null; } catch (e) { return null; } }
 function continueRun(){
   const r = loadRun(); if (!r) return;
-  run = r; run.items = run.items || [];
+  run = r; run.items = run.items || []; run.diff = DIFFS[run.diff] ? run.diff : "easy";
   updateTopbar(); renderMap(); showScreen("screen-map");
 }
 
 function renderMap(){
   const a = AREAS[run.area - 1];
   $("map-floor").innerHTML = ART.ui("school") + " " + esc(a.name);
-  $("map-floor-sub").textContent = a.sub;
+  $("map-floor-sub").innerHTML = esc(a.sub) + ` <span class="diff-tag" style="color:${curDiff().c};border-color:${curDiff().c}">${curDiff().n}</span>`;
   const cor = $("map-corridor");
   cor.innerHTML = "";
   const steps = run.map.slice();
@@ -4710,7 +4729,7 @@ function toTitle(){
   run = null; B = null;
   const saved = loadRun();
   $("btn-continue").style.display = saved ? "block" : "none";
-  if (saved) $("btn-continue").innerHTML = `続きから(${esc(AREAS[saved.area - 1].name.split(" ")[0])}・${ART.ui("candle")}×${saved.candles})`;
+  if (saved) $("btn-continue").innerHTML = `続きから(${esc(AREAS[saved.area - 1].name.split(" ")[0])}・${ART.ui("candle")}×${saved.candles}・${(DIFFS[saved.diff] || DIFFS.easy).n})`;
   $("btn-skip").style.display = save.prologueDone ? "block" : "none";
   $("btn-start").textContent = save.prologueDone ? "はじめから(プロローグを見る)" : "はじめから";
   let sub = "所持している威厳 ─ " + save.igen;
@@ -4724,6 +4743,18 @@ function toTitle(){
 }
 function titleStart(skip){
   if (loadRun() && !confirm("進行中のランを破棄して、最初から始めますか?")) return;
+  pickDifficulty(() => startFresh(skip));
+}
+function pickDifficulty(cb){
+  choiceScreen("難易度を選べ", "選んだ難易度はこのランの間ずっと続く。\n(プロローグの授業と逮捕イベントは共通)");
+  for (const k of ["easy", "normal", "hard"]) {
+    const d = DIFFS[k];
+    const b = choiceButton(`<span style="color:${d.c}">${d.n}</span>${save.diff === k ? " ◂ 前回" : ""}<small>${esc(d.sub)}</small>`, () => { save.diff = k; commitSave(); cb(); });
+    if (save.diff === k) b.classList.add("hl");
+  }
+  choiceButton("タイトルへ戻る<small>まだ校舎には入らない。</small>", () => toTitle());
+}
+function startFresh(skip){
   clearRun();
   if (skip) { playStory(ST_RESTART, () => beginRun()); return; }
   newRun(true);
