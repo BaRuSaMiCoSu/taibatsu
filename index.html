@@ -21,6 +21,11 @@ svg{display:block}
 #tb-deckbtn{background:#141a2c;border:1px solid #2a3450;color:#cfc8b4;font-size:11px;padding:3px 10px;border-radius:4px}
 .candle-lit{color:#f0b040;text-shadow:0 0 8px rgba(240,170,40,.8);animation:flick 2s infinite;display:inline-block}
 .candle-out{opacity:.25;filter:grayscale(1)}
+.pc.legend{border-color:#e8b840;box-shadow:0 0 0 1px #6a4a10,0 0 14px rgba(240,190,60,.55),0 4px 10px #000}
+.pc.legend .nm{color:#7a4a08}
+.pc.upg .nm::after{content:"";display:inline-block;width:5px;height:5px;margin-left:3px;border-radius:50%;background:#3aa860;vertical-align:2px}
+.shop-item.legend{border-color:#c8a040;background:linear-gradient(90deg,rgba(90,64,16,.45),rgba(20,16,10,.6));box-shadow:0 0 12px rgba(240,190,60,.25)}
+.shop-item.legend .si-name{color:#f0c860}
 .uic{display:inline-block;width:1.15em;height:1.15em;vertical-align:-.22em;flex:none}
 .candle-lit .uic{filter:drop-shadow(0 0 3px rgba(240,170,40,.85))}
 
@@ -477,9 +482,9 @@ const SAVE_KEY = "taibatsu_2gjones_v1";
 let save = { igen:0, prologueDone:false, cleared:false, trueCleared:false, wins:0, diff:"easy" };
 /* difficulty. atk: added to every enemy card, win: chalk needed on the enemy pan */
 const DIFFS = {
-  easy:  {n:"イージー", c:"#7ad890", atk:0, win:5, sub:"これまで通りの授業(天秤5本で勝利)。初めての方に。"},
-  normal:{n:"ノーマル", c:"#e8c76a", atk:0, win:7, sub:"勝利に必要なダメージ +2(天秤7本で勝利)。ボス戦が長く厳しくなる。"},
-  hard:  {n:"ハード",   c:"#e0604a", atk:1, win:7, sub:"敵カードの攻撃 +1、さらに勝利に必要なダメージ +2(天秤7本)。"}
+  easy:  {n:"イージー", c:"#7ad890", atk:0, win:5, mult:1, sub:"これまで通りの授業(天秤5本で勝利)。初めての方に。"},
+  normal:{n:"ノーマル", c:"#e8c76a", atk:0, win:7, mult:1.2, sub:"勝利に必要なダメージ +2(天秤7本で勝利)。獲得威厳 ×1.2。"},
+  hard:  {n:"ハード",   c:"#e0604a", atk:1, win:7, mult:1.4, sub:"敵カードの攻撃 +1、さらに勝利に必要なダメージ +2(天秤7本)。獲得威厳 ×1.4。"}
 };
 const curDiff = () => DIFFS[(run && run.diff) || "easy"] || DIFFS.easy;
 /* the prologue (tutorial + the arrest) always plays the same */
@@ -488,7 +493,14 @@ const diffAtk = () => diffOn() ? curDiff().atk : 0;
 const winNeed = () => diffOn() ? curDiff().win : 5;
 function loadSave(){ try{ const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(s) save=Object.assign(save,s);}catch(e){} }
 function commitSave(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }catch(e){} }
-function addIgen(n){ save.igen=Math.max(0,save.igen+n); commitSave(); updateTopbar(); }
+/* gains inside a run scale with the difficulty; spending never does. returns the amount actually applied */
+function addIgen(n){
+  if (n > 0 && run && !run.prologue && typeof curDiff === "function") n = Math.round(n * (curDiff().mult || 1));
+  save.igen = Math.max(0, save.igen + n); commitSave(); updateTopbar();
+  return n;
+}
+/* rewrite "威厳+15" in event texts to what the current difficulty actually pays */
+const igenLabel = t => String(t).replace(/威厳\+(\d+)/g, (m, d) => "威厳+" + Math.round(+d * ((run && !run.prologue && curDiff().mult) || 1)));
 
 /* ---------- ability texts ---------- */
 const AB_TEXT = {
@@ -566,6 +578,8 @@ const CARDS = {
 };
 for(const k in CARDS) CARDS[k].id = k;
 
+/* 伝説の教鞭: sold for 10000 威厳, then joins every run's starting deck for good */
+const LEGEND_PRICE = 10000;
 const STARTER_DECK = ["binta","binta","genkotsu","genkotsu","harisen","sekkyo","rouka","seiza","ground","honno"];
 const REWARD_POOL   = ["binta","genkotsu","kokuban","harisen","chalk","shusseki","mop","rentai","ohuku","shinai","ketsubat","sekkyo","baketsu","iincho","rouka","seiza","ground","hansei","shukudai","team","aisek","kiai","osu","konjo","ketsumyaku","kumitaiso","nichoku","okitegami","chorei","encho","taigaku"];
 const ELITE_POOL    = ["tekken","bassoku","ohuku","ketsubat","album","honno","shinai","iincho","shukudai","aisek","tokkun","kibasen","konjo","ketsumyaku"];
@@ -3158,6 +3172,18 @@ A.s_candle = () => `<circle cx="30" cy="12" r="13" fill="#ffb040" opacity=".25"/
   `<path d="M23,19 Q22,25 24.6,27 Q26,23 26,19Z M33,19 Q35,27 33.6,30 Q32.2,25 31.4,19Z" fill="#d84a3a"/><path d="M30,19 L30,15" stroke="${K}" stroke-width="1.2"/>
   <path d="M30,2 Q35,9 32.6,13.4 Q30,16.2 27.4,13.4 Q25,9 30,2Z" fill="#ffb020" stroke="${K}" stroke-width=".8"/><path d="M30,7 Q32.2,10.4 31,12.6 Q30,13.6 29,12.6 Q27.8,10.4 30,7Z" fill="#fff4b0"/>` + `<ellipse cx="30" cy="41" rx="11" ry="2" fill="${K}" opacity=".5"/>`;
 
+/* 伝説の教鞭: a pointer stick wrapped in the red tie, glowing */
+A.legend = () => `<defs><radialGradient id="lgG"><stop offset="0" stop-color="#ffd870" stop-opacity=".75"/><stop offset="1" stop-color="#ffb030" stop-opacity="0"/></radialGradient></defs>
+  <ellipse cx="30" cy="22" rx="28" ry="20" fill="url(#lgG)"/>` +
+  [[8, 14, 6], [50, 8, 4], [46, 36, 5], [12, 34, 4]].map(([x, y, r]) => `<path d="M${x},${y - r} L${x + r * .25},${y - r * .25} L${x + r},${y} L${x + r * .25},${y + r * .25} L${x},${y + r} L${x - r * .25},${y + r * .25} L${x - r},${y} L${x - r * .25},${y - r * .25}Z" fill="#fff6c8"/>`).join("") +
+  `<path d="M9,39 L49,6 L52,9 L12,42 Z" fill="#7a4a24" stroke="${K}" stroke-width="1.4" stroke-linejoin="round"/>
+  <path d="M10,39.6 L49.4,7" stroke="#c8925a" stroke-width="1" opacity=".8"/>
+  <path d="M47,5 L53,4 L54,10 L50,11 Z" fill="#e8c040" stroke="${K}" stroke-width="1.1"/>
+  <path d="M7,38 L12,43 L9,44.5 L5.5,41 Z" fill="#e8c040" stroke="${K}" stroke-width="1"/>
+  <path d="${pth([[20,27],[30,22],[33,26],[24,32]])}" fill="#c4241e" stroke="${K}" stroke-width="1.1"/>
+  <path d="${pth([[30,22],[38,16],[44,18],[36,22],[33,26]])}" fill="#a81a16" stroke="${K}" stroke-width="1"/>
+  <path d="${pth([[24,32],[20,38],[16,41],[22,40],[27,34]])}" fill="#a81a16" stroke="${K}" stroke-width="1"/>
+  <path d="M22,29.6 L31,24" stroke="#ff8a70" stroke-width=".9" opacity=".8"/>`;
 /* ---------- 現行犯逮捕: the cuffs (200x130) ---------- */
 ART.cuffs = () => {
   const P = ART.nid("C");
@@ -3216,6 +3242,24 @@ Object.assign(ENEMIES.hiroshi,  {p2:{line:"「ほう……ならば儂も、本�
 
 /* graduate (death) cards persist between runs */
 const GRAD_NAMES = ["山田","佐藤","鈴木","田中","高橋","渡辺","伊藤","中村","小林","加藤","吉田","松本"];
+/* an upgraded card is a separate id: base + "+" + level, built on demand */
+const baseOf = cid => (CARDS[cid] && CARDS[cid].upOf) || cid;
+function ensureCard(id){
+  if (CARDS[id]) return CARDS[id];
+  const m = /^(.+)\+(\d+)$/.exec(id);
+  if (!m || !CARDS[m[1]]) return null;
+  const b = CARDS[m[1]], n = +m[2];
+  return CARDS[id] = Object.assign({}, b, {id, upOf:m[1], up:n, atk:b.atk + n, hp:b.hp + n});
+}
+function upgradeAt(idx){
+  const cid = run.deck[idx], c = CARDS[cid], base = c.upOf || cid;
+  const id = base + "+" + ((c.up || 0) + 1);
+  ensureCard(id);
+  run.deck[idx] = id; saveRun();
+  return id;
+}
+CARDS.legend = {id:"legend", n:"伝説の教鞭", cost:2, kind:"u", tb:1, atk:3, hp:4, ab:["double", "trample"], icon:"🪄", r:3, legend:1,
+  fl:"三十年、一度も折れなかった。……持ち主の心と同じように。"};
 function registerGrads(){
   for (const g of (save.grads || [])) {
     CARDS[g.id] = Object.assign({kind:"u", r:2, icon:"🎓", grad:1, fl:"「先生、俺たちの分まで」……卒業生の想い。"}, g);
@@ -3290,8 +3334,7 @@ const canAct = () => B && !B.busy && !B.over && !B.halt && !B.mustDraw;
 
 function newPUnit(cid){
   const c = CARDS[cid];
-  const up = (run && run.upgrades[cid]) || 0;
-  return {uid:uidc++, cid, n:c.n, icon:c.icon, atk:c.atk + up + (B ? B.instinct : 0), hp:c.hp + up, mhp:c.hp + up,
+  return {uid:uidc++, cid, n:c.n + (c.up ? "+" + c.up : ""), icon:c.icon, atk:c.atk + (B ? B.instinct : 0), hp:c.hp, mhp:c.hp,
           tb:!!c.tb, ab:(c.ab || []).slice(), stun:0, enemy:false, grad:!!c.grad};
 }
 function newEUnit(eid, bonusAtk, bonusHp){
@@ -3432,17 +3475,16 @@ function banner(main, sub, red, dur){
 }
 
 /* ---------- card elements ---------- */
-const cardArt = cid => ART.inkSVG(cid.startsWith("grad_") ? "grad" : cid) || (CARDS[cid] ? CARDS[cid].icon : "");
-const unitArt = u => ART.inkSVG(u.conv ? "seito" : u.cid) || u.icon;
+const cardArt = cid => { const b = baseOf(cid); return ART.inkSVG(b.startsWith("grad_") ? "grad" : b) || (CARDS[cid] ? CARDS[cid].icon : ""); };
+const unitArt = u => ART.inkSVG(u.conv ? "seito" : baseOf(u.cid).startsWith("grad_") ? "grad" : baseOf(u.cid)) || u.icon;
 const itemArt = k => ART.inkSVG("i_" + k) || ITEMS[k].icon;
 function sigText(ab){ return (ab || []).map(a => "◆" + AB_TEXT[a]).join(" "); }
 function cardEl(cid, size){
-  const c = CARDS[cid];
-  const up = (run && run.upgrades[cid]) || 0;
+  const c = CARDS[cid], up = c.up || 0;
   const d = document.createElement("div");
-  d.className = "pc" + (size ? " " + size : "") + (c.grad ? " grad" : "") + (c.curse ? " curse" : "");
+  d.className = "pc" + (size ? " " + size : "") + (c.grad ? " grad" : "") + (c.curse ? " curse" : "") + (c.legend ? " legend" : "") + (up ? " upg" : "");
   const body = c.kind === "u"
-    ? `${c.ab && c.ab.length ? `<div class="sig">${sigText(c.ab)}</div>` : ""}<div class="st"><span class="a">${c.atk + up}</span><span class="h">${c.hp + up}</span></div>`
+    ? `${c.ab && c.ab.length ? `<div class="sig">${sigText(c.ab)}</div>` : ""}<div class="st"><span class="a">${c.atk}</span><span class="h">${c.hp}</span></div>`
     : `<div class="desc">${esc(c.desc || "")}</div>`;
   d.innerHTML = `<div class="seal">${c.cost}</div>${c.tb ? `<div class="tbm">罰</div>` : ""}
     <div class="nm">${esc(c.n)}${up ? "+" + up : ""}</div><div class="art">${cardArt(cid)}</div>${body}`;
@@ -3451,9 +3493,9 @@ function cardEl(cid, size){
 function unitCardEl(u, mini){
   const d = document.createElement("div");
   const base = u.enemy ? null : CARDS[u.cid];
-  d.className = "pc" + (u.enemy ? (u.conv ? " conv" : " en") : "") + (u.grad ? " grad" : "") + (mini ? " mini" : "") + (u.stun > 0 ? " stunned" : "") + (u.ab.includes("guard") ? " guard" : "");
+  d.className = "pc" + (u.enemy ? (u.conv ? " conv" : " en") : "") + (u.grad ? " grad" : "") + (base && base.legend ? " legend" : "") + (mini ? " mini" : "") + (u.stun > 0 ? " stunned" : "") + (u.ab.includes("guard") ? " guard" : "");
   d.id = "u" + u.uid;
-  const ac = base && u.atk > base.atk + ((run && run.upgrades[u.cid]) || 0) ? "buff" : "";
+  const ac = base && u.atk > base.atk ? "buff" : "";
   const hc = u.hp < u.mhp ? "hurt" : "";
   d.innerHTML = `${!u.enemy && u.tb ? `<div class="tbm">罰</div>` : ""}<div class="nm">${esc(u.n)}</div><div class="art">${unitArt(u)}</div>
     ${u.ab.length ? `<div class="sig">${sigText(u.ab)}</div>` : ""}<div class="st"><span class="a ${ac}">${u.atk}</span><span class="h ${hc}">${u.hp}</span></div>`;
@@ -3616,9 +3658,9 @@ function closeDetail(){ if (Date.now() < detailGuard) return; detailGuard = 0; $
 function abHtml(ab){ return (ab || []).map(a => `<div class="ab">◆${AB_TEXT[a]}:${AB_DESC[a]}</div>`).join(""); }
 function showCardDetail(cid){
   const c = CARDS[cid]; if (!c) return;
-  const up = (run && run.upgrades[cid]) || 0;
+  const up = c.up || 0;
   openDetail(cardEl(cid, "big"), `<h3>${esc(c.n)}${up ? " +" + up : ""}</h3>
-    <div>コスト ⚡${c.cost} ${c.kind === "u" ? `/ ⚔${c.atk + up} ♥${c.hp + up}` : "/ 呪文"} ${c.tb ? "/ <span style='color:#e06050'>体罰カード</span>" : "/ 補助カード"}</div>
+    <div>コスト ⚡${c.cost} ${c.kind === "u" ? `/ ⚔${c.atk} ♥${c.hp}` : "/ 呪文"}${up ? ` <span style="color:#7ad890">(強化済み)</span>` : ""} ${c.tb ? "/ <span style='color:#e06050'>体罰カード</span>" : "/ 補助カード"}</div>
     ${c.desc ? `<div>${esc(c.desc)}</div>` : ""}${abHtml(c.ab)}<div class="fl">${esc(c.fl || "")}</div>`);
 }
 function showUnitDetail(u){
@@ -3988,7 +4030,7 @@ async function enemyTurn(){
         const i = Math.random() < 0.6 ? cands[0] : rnd(cands);
         const u = B.p[i]; B.p[i] = null;
         u.enemy = true; u.conv = true;
-        u.n = CONVERT_NAMES[u.cid] || ("更生した" + u.n);
+        u.n = CONVERT_NAMES[baseOf(u.cid)] || ("更生した" + u.n);
         u.icon = "🕊"; u.hp = u.mhp; u.stun = 0;
         if (freeE.length) B.en[rnd(freeE)] = u; else B.q[rnd(freeQ)] = u;
         bubble("「ほら…あなたは本当は、優しい子」");
@@ -4116,9 +4158,8 @@ async function policeArrest(){
 async function winBattle(){
   const e = B.e, opts = B.opts;
   await banner("勝 利", e.boss ? "「これが、俺の授業だ」" : "「次の授業も、覚悟しておけ」", false, 1500);
-  const gained = e.igen || 20;
   B = null;
-  addIgen(gained);
+  const gained = addIgen(e.igen || 20);
   if (opts.onWin) { opts.onWin(gained); return; }
   if (e.id === "tutorial") { playStory(ST_POLICE, () => startBattle("police")); return; }
   if (e.id === "kaicho") {
@@ -4215,7 +4256,7 @@ function itemText(key){
 }
 
 function newRun(prologue){
-  run = { deck:STARTER_DECK.slice(), candles:2, area:1, step:0, map:genArea(1), upgrades:{}, usedEvents:[], diff:DIFFS[save.diff] ? save.diff : "easy",
+  run = { deck:STARTER_DECK.concat(!prologue && save.legend ? ["legend"] : []), candles:2, area:1, step:0, map:genArea(1), usedEvents:[], diff:DIFFS[save.diff] ? save.diff : "easy",
           bossDone:false, items:prologue ? [] : [rnd(["akapen", "shussekibo"])], prologue:!!prologue };
 }
 function beginRun(){
@@ -4233,6 +4274,9 @@ function loadRun(){ try { const r = JSON.parse(localStorage.getItem(RUN_KEY)); r
 function continueRun(){
   const r = loadRun(); if (!r) return;
   run = r; run.items = run.items || []; run.diff = DIFFS[run.diff] ? run.diff : "easy";
+  /* older saves upgraded a whole card type: turn that into per-card copies */
+  if (run.upgrades) { run.deck = run.deck.map(c => run.upgrades[c] ? c + "+" + run.upgrades[c] : c); delete run.upgrades; }
+  run.deck.forEach(ensureCard);
   updateTopbar(); renderMap(); showScreen("screen-map");
 }
 
@@ -4357,9 +4401,9 @@ function pickFromDeck(title, desc, filter, cb, cancelCb){
 }
 
 function showUpgrade(cb){
-  pickFromDeck("⬆️ カード強化", "赤ペンで指導要録に書き込む。\n選んだ種類のカードは、このラン中ずっと +1/+1。",
+  pickFromDeck("⬆️ カード強化", "赤ペンで指導要録に書き込む。\n選んだカード1枚だけが、このラン中ずっと +1/+1。",
     cid => CARDS[cid].kind === "u" && cid !== "nafuda",
-    cid => { if (cid) { run.upgrades[cid] = (run.upgrades[cid] || 0) + 1; saveRun(); } cb(); },
+    (cid, idx) => { if (cid && idx >= 0) upgradeAt(idx); cb(); },
     () => cb());
 }
 
@@ -4383,7 +4427,7 @@ function openShop(){
     {kind:"manual", price:45, sold:false},
     {kind:"remove", price:30, sold:false},
     {kind:"candle", price:50, sold:false}
-  ]};
+  ].concat(save.legend ? [] : [{kind:"legend", price:LEGEND_PRICE, sold:false}])};
   if (!$("shop-face").innerHTML) $("shop-face").innerHTML = ART.boss.obachan();
   typeText($("shop-quote"), rnd(SHOP_QUOTES), 30);
   renderShop();
@@ -4397,9 +4441,10 @@ function renderShop(){
     let icon, name, desc;
     if (it.kind === "card") { const c = CARDS[it.cid]; icon = cardArt(it.cid); name = c.n + (c.grad ? "(卒業生)" : ""); desc = (c.kind === "u" ? `⚔${c.atk}/♥${c.hp} ` : "") + (c.desc || sigText(c.ab)) + " ─ " + c.fl; }
     if (it.kind === "item") { const t = ITEMS[it.key]; icon = itemArt(it.key); name = t.n + "(アイテム)"; desc = t.desc + "。戦闘中にいつでも使える。"; }
-    if (it.kind === "manual") { icon = ART.inkSVG("s_manual"); name = "絶版の生徒指導マニュアル"; desc = "カード1種類をこのラン中 +1/+1 に強化する。"; }
+    if (it.kind === "manual") { icon = ART.inkSVG("s_manual"); name = "絶版の生徒指導マニュアル"; desc = "デッキのカード1枚をこのラン中 +1/+1 に強化する。"; }
     if (it.kind === "remove") { icon = ART.inkSVG("s_remove"); name = "カード除去サービス"; desc = "デッキから不要なカードを1枚、シュレッダーにかける。"; }
     if (it.kind === "candle") { icon = ART.inkSVG("s_candle"); name = "赤い蝋燭"; desc = "消えたろうそくを灯し直す(残機全回復)。"; }
+    if (it.kind === "legend") { icon = cardArt("legend"); name = "伝説の教鞭(永久)"; desc = "⚔3/♥4 ◆連撃 ◆貫通。一度買えば、以後すべてのランの初期デッキに入る。"; d.classList.add("legend"); }
     d.innerHTML = `<div class="si-icon">${icon}</div><div class="si-body"><div class="si-name">${esc(name)}</div><div class="si-desc">${esc(desc)}</div></div>`;
     const btn = document.createElement("button");
     btn.className = "si-buy"; btn.textContent = "威厳 " + it.price;
@@ -4408,6 +4453,7 @@ function renderShop(){
     btn.onclick = () => buyItem(i);
     d.appendChild(btn);
     if (it.kind === "card") bindLongPress(d, () => showCardDetail(it.cid));
+    if (it.kind === "legend") bindLongPress(d, () => showCardDetail("legend"));
     box.appendChild(d);
   });
 }
@@ -4417,10 +4463,15 @@ function buyItem(i){
   const q = t => typeText($("shop-quote"), t, 30);
   if (it.kind === "card") { addIgen(-it.price); it.sold = true; run.deck.push(it.cid); saveRun(); q("「まいどあり。大事に使いなよ」"); renderShop(); }
   else if (it.kind === "item") { if (!grantItem(it.key)) return; addIgen(-it.price); it.sold = true; q("「それ、先生が昔没収したやつだよ。……覚えてないかい?」"); renderShop(); }
+  else if (it.kind === "legend") {
+    if (!confirm("威厳 " + it.price + " を払って『伝説の教鞭』を手に入れますか?\n(以後すべてのランで初期デッキに入ります)")) return;
+    addIgen(-it.price); it.sold = true; save.legend = true; commitSave(); run.deck.push("legend"); saveRun();
+    q("「……ついに、これを渡す日が来たかい。あんたのだよ、最初から」"); renderShop();
+  }
   else if (it.kind === "candle") { addIgen(-it.price); it.sold = true; run.candles = 2; saveRun(); q("「火の始末にゃ、気をつけな」"); renderShop(); updateTopbar(); }
   else if (it.kind === "manual") {
-    pickFromDeck("📔 生徒指導マニュアル", "強化するカードの種類を選べ(+1/+1)。", cid => CARDS[cid].kind === "u",
-      cid => { if (cid) { addIgen(-it.price); it.sold = true; run.upgrades[cid] = (run.upgrades[cid] || 0) + 1; saveRun(); } renderShop(); showScreen("screen-shop"); });
+    pickFromDeck("📔 生徒指導マニュアル", "強化するカードを1枚選べ(+1/+1)。", cid => CARDS[cid].kind === "u" && cid !== "nafuda",
+      (cid, idx) => { if (cid && idx >= 0) { addIgen(-it.price); it.sold = true; upgradeAt(idx); } renderShop(); showScreen("screen-shop"); });
   } else if (it.kind === "remove") {
     pickFromDeck("🗑 カード除去", "シュレッダーにかけるカードを選べ。", null,
       (cid, idx) => { if (cid !== null && idx >= 0) { addIgen(-it.price); it.sold = true; run.deck.splice(idx, 1); saveRun(); } renderShop(); showScreen("screen-shop"); });
@@ -4469,7 +4520,7 @@ const EVENTS = [
   { id:"techo", icon:"📓", title:"落とし物の生徒手帳",
     tx:"廊下に生徒手帳が落ちている。\n開くと、びっしりと書き込まれた決意の文字。\n「いつか、JONES先生みたいな大人になる」",
     choices:[
-      {label:"胸に刻む", sub:"カード1種類を強化(+1/+1)",
+      {label:"胸に刻む", sub:"カード1枚を強化(+1/+1)",
         fn:"upgrade"},
       {label:"職員室に届ける", sub:"威厳+20",
         fn:()=>{ addIgen(20); return "落とし物は届ける。当たり前のことを、当たり前に。\n(威厳+20)"; }}
@@ -4556,7 +4607,7 @@ function openEvent(){
     ev.choices.forEach(ch => {
       const b = document.createElement("button");
       b.className = "choice-btn";
-      b.innerHTML = ch.label + "<small>" + ch.sub + "</small>";
+      b.innerHTML = ch.label + "<small>" + igenLabel(ch.sub) + "</small>";
       b.onclick = () => resolveEventChoice(ch);
       box.appendChild(b);
     });
@@ -4581,7 +4632,7 @@ function resolveEventChoice(ch){
 function eventResult(text, cb){
   const box = $("event-choices"); box.innerHTML = "";
   updateTopbar();
-  typeText($("event-text"), text, 18).then(() => {
+  typeText($("event-text"), igenLabel(text), 18).then(() => {
     const b = document.createElement("button");
     b.className = "choice-btn"; b.textContent = "先へ進む"; b.onclick = cb;
     box.appendChild(b);
@@ -4734,6 +4785,7 @@ function toTitle(){
   $("btn-start").textContent = save.prologueDone ? "はじめから(プロローグを見る)" : "はじめから";
   let sub = "所持している威厳 ─ " + save.igen;
   if ((save.grads || []).length) sub += "\n卒業生カード ─ " + save.grads.map(g => g.n).join("、");
+  if (save.legend) sub += "\n【伝説の教鞭 所持】";
   if (save.trueCleared) sub += "\n【本能の力の真の継承者】";
   else if (save.cleared) sub += "\n【委員会撃破済 ─ 剣道場が待つ】";
   $("title-igen").textContent = sub;
