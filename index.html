@@ -477,9 +477,9 @@ const SAVE_KEY = "taibatsu_2gjones_v1";
 let save = { igen:0, prologueDone:false, cleared:false, trueCleared:false, wins:0, diff:"easy" };
 /* difficulty. atk: added to every enemy card, win: chalk needed on the enemy pan */
 const DIFFS = {
-  easy:  {n:"イージー", c:"#7ad890", atk:0, win:5, sub:"これまで通りの授業。"},
-  normal:{n:"ノーマル", c:"#e8c76a", atk:0, win:7, sub:"勝利に必要なダメージ +2(天秤7本で勝利)。"},
-  hard:  {n:"ハード",   c:"#e0604a", atk:1, win:7, sub:"敵カードの攻撃 +1、さらに勝利に必要なダメージ +2。"}
+  easy:  {n:"イージー", c:"#7ad890", atk:0, win:5, sub:"これまで通りの授業(天秤5本で勝利)。初めての方に。"},
+  normal:{n:"ノーマル", c:"#e8c76a", atk:0, win:7, sub:"勝利に必要なダメージ +2(天秤7本で勝利)。ボス戦が長く厳しくなる。"},
+  hard:  {n:"ハード",   c:"#e0604a", atk:1, win:7, sub:"敵カードの攻撃 +1、さらに勝利に必要なダメージ +2(天秤7本)。"}
 };
 const curDiff = () => DIFFS[(run && run.diff) || "easy"] || DIFFS.easy;
 /* the prologue (tutorial + the arrest) always plays the same */
@@ -656,7 +656,7 @@ const ENEMIES = {
     quotes:["「暴力を教育と呼ぶ時代は、私が終わらせた」","「君の一挙一動、全て記録させてもらう」","「ほう…まだ手を上げるか。記録が増えるな」","「事勿君、震えていないで君も働きたまえ」"],
     pool:["goei","shorui","bengoshi","shinei"], curve:[2,3,4,4,5,6], igen:150 },
   hiroshi:{ n:"初代・鬼教師の亡霊 ひろし", icon:"👺", area:4, boss:1, ura:1,
-    special:"本能の力:開幕から1スタック。時折さらに滾る",
+    special:"本能の力:開幕から2スタック、2ターンごとに滾る。本能が高まると呼ぶ駒も頑強に/本能の共鳴:こちらが本能の力を使うと敵の本能も+1",
     intro:"「…来たか、JONES。儂の『本能』、返してもらいに来たんじゃろう。……かかってこい」",
     quotes:["「その程度のビンタで、教育か…?」","「腰が入っとらん。全てにおいてな」","「儂は生前、拳で三千人を卒業させた」","「…ほう。少しは、儂に似てきたな」","「本能が…滾るのう…」"],
     pool:["h_binta","h_shinai","h_ketsu","h_kage"], curve:[2,3,4,5,5,6], igen:200 }
@@ -3211,7 +3211,7 @@ Object.assign(ENEMIES.counselor,{p2:{line:"「みんなでお話ししましょ�
 Object.assign(ENEMIES.nushi,    {p2:{line:"「カーテン、開けちゃったわね……ふふ。もう、帰さない」", special:"大静養:天秤を戻し、敵カードも毎ターン全快"}});
 Object.assign(ENEMIES.kaicho,   {p2:{line:"「……いいだろう。私が直々に、君を処分する」", special:"完全無効化:体罰カードの攻撃を50%で無効"}});
 /* ひろし tuning: starting instinct, turns between surges per phase, instinct gained on phase 2, extra hp per instinct on summons */
-const HIRO = {start:1, every:[3, 2], p2:2, hpPer:0, resonate:false};
+const HIRO = {start:2, every:[2, 2], p2:2, hpPer:.5, resonate:true};
 Object.assign(ENEMIES.hiroshi,  {p2:{line:"「ほう……ならば儂も、本気の本能を見せてやろう」", special:"真・本能:敵の本能+2、さらに滾る"}});
 
 /* graduate (death) cards persist between runs */
