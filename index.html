@@ -484,7 +484,7 @@ let save = { igen:0, prologueDone:false, cleared:false, trueCleared:false, wins:
 const DIFFS = {
   easy:  {n:"イージー", c:"#7ad890", atk:0, win:5, mult:1, sub:"これまで通りの授業(天秤5本で勝利)。初めての方に。"},
   normal:{n:"ノーマル", c:"#e8c76a", atk:0, win:7, mult:1.2, sub:"勝利に必要なダメージ +2(天秤7本で勝利)。獲得威厳 ×1.2。"},
-  hard:  {n:"ハード",   c:"#e0604a", atk:1, win:7, mult:1.4, sub:"敵カードの攻撃 +1、さらに勝利に必要なダメージ +2(天秤7本)。獲得威厳 ×1.4。"}
+  hard:  {n:"ハード",   c:"#e0604a", atk:1, win:7, mult:1.4, sub:"敵カードの攻撃 +1、さらに勝利に必要なダメージ +2(天秤7本)。獲得威厳 ×1.4。会長の先に裏ボスが待つ。"}
 };
 const curDiff = () => DIFFS[(run && run.diff) || "easy"] || DIFFS.easy;
 /* the prologue (tutorial + the arrest) always plays the same */
@@ -4163,8 +4163,10 @@ async function winBattle(){
   if (opts.onWin) { opts.onWin(gained); return; }
   if (e.id === "tutorial") { playStory(ST_POLICE, () => startBattle("police")); return; }
   if (e.id === "kaicho") {
-    save.cleared = true; save.wins++; commitSave();
-    playStory(ST_ENDING, () => { run.bossDone = true; saveRun(); renderMap(); showScreen("screen-map"); });
+    save.cleared = true; save.wins++; if (run.diff === "hard") save.hardCleared = true; commitSave();
+    /* the dojo and ひろし only open after a Hard-mode win */
+    if (run.diff === "hard") playStory(ST_ENDING, () => { run.bossDone = true; saveRun(); renderMap(); showScreen("screen-map"); });
+    else playStory(ST_ENDING.slice(0, -1), () => homecoming("委員会は去り、学校は静けさを取り戻した。\n2G JONESの授業は、明日も続く。\n\n(……ハードモードで会長を倒した者だけが、\n剣道場の竹刀の音を聞くという)"));
     return;
   }
   if (e.id === "hiroshi") {
@@ -4287,7 +4289,7 @@ function renderMap(){
   const cor = $("map-corridor");
   cor.innerHTML = "";
   const steps = run.map.slice();
-  if (run.bossDone) steps.push({nodes:[mkNode("dojo", 3), mkNode("home", 3)], done:false, dojoStep:true});
+  if (run.bossDone) steps.push({nodes:run.diff === "hard" ? [mkNode("dojo", 3), mkNode("home", 3)] : [mkNode("home", 3)], done:false, dojoStep:true});
   steps.forEach((st, si) => {
     const row = document.createElement("div");
     row.className = "map-step" + (st.nodes.length > 1 ? " fork" : "");
@@ -4324,13 +4326,7 @@ function enterNode(nd){
     case "dojo":
       playStory([{bg:"scene:dojo", sp:"", tx:"軋む渡り廊下を渡ると、月明かりの剣道場。\n奥の掛け軸には、力強い二文字。\n\n──『本能』", port:"boss:hiroshi"}], () => startBattle("hiroshi", {}));
       break;
-    case "home":
-      clearRun();
-      showScreen("screen-over");
-      $("over-main").textContent = "─ 凱 旋 ─";
-      $("over-sub").textContent = "委員会は去り、学校は静けさを取り戻した。\n2G JONESの授業は、明日も続く。\n\n(剣道場の亡霊は、まだ待っている……)";
-      run = null; updateTopbar();
-      break;
+    case "home": homecoming("委員会は去り、学校は静けさを取り戻した。\n2G JONESの授業は、明日も続く。\n\n(剣道場の亡霊は、まだ待っている……)"); break;
     case "card": showReward(REWARD_POOL, "🃏 落とし物のカード", "教室の机の中に、カードが挟まっていた。1枚選べ。", () => advanceStep()); break;
     case "upgrade": showUpgrade(() => advanceStep()); break;
     case "shop": openShop(); break;
@@ -4338,6 +4334,13 @@ function enterNode(nd){
   }
 }
 
+function homecoming(text){
+  clearRun();
+  showScreen("screen-over");
+  $("over-main").textContent = "─ 凱 旋 ─";
+  $("over-sub").textContent = text;
+  run = null; updateTopbar();
+}
 function advanceStep(){
   if (!run) return;
   if (run.bossDone) { renderMap(); showScreen("screen-map"); return; }
@@ -4787,7 +4790,7 @@ function toTitle(){
   if ((save.grads || []).length) sub += "\n卒業生カード ─ " + save.grads.map(g => g.n).join("、");
   if (save.legend) sub += "\n【伝説の教鞭 所持】";
   if (save.trueCleared) sub += "\n【本能の力の真の継承者】";
-  else if (save.cleared) sub += "\n【委員会撃破済 ─ 剣道場が待つ】";
+  else if (save.cleared) sub += "\n【委員会撃破済】" + (save.hardCleared ? "剣道場が待つ" : "\n(ハードで会長を倒すと、剣道場への道が開く)");
   $("title-igen").textContent = sub;
   if (!$("title-art").innerHTML) $("title-art").innerHTML = ART.jones(save.trueCleared ? "awakened" : "released");
   updateTopbar();
