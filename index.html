@@ -357,6 +357,7 @@ svg{display:block}
       <button class="tbtn gold" id="btn-continue" onclick="continueRun()" style="display:none">続きから</button>
       <button class="tbtn" id="btn-start" onclick="titleStart(false)">はじめから</button>
       <button class="tbtn" id="btn-skip" onclick="titleStart(true)" style="display:none">プロローグをスキップして開始</button>
+      <button class="tbtn" id="btn-grads" onclick="openGrads()" style="display:none">卒業生名簿</button>
       <button class="tbtn" id="btn-wipe" onclick="wipeSave()" style="font-size:11px;width:180px;padding:8px">セーブデータ消去</button>
       <div id="title-igen"></div>
     </div>
@@ -415,7 +416,7 @@ svg{display:block}
         <div id="b-draw">
           <div class="ask">── カードを1枚引け ──</div>
           <div class="pile deck" id="pile-deck" onclick="chooseDraw('deck')"><b id="pile-deck-ic"></b>山札<br><span id="pile-deck-n"></span></div>
-          <div class="pile tag" id="pile-tag" onclick="chooseDraw('tag')"><b id="pile-tag-ic"></b>生徒の名札<br>0コスト 0/1</div>
+          <div class="pile tag" id="pile-tag" onclick="chooseDraw('tag')"><b id="pile-tag-ic"></b>生徒の名札<br>気合0 0/1</div>
         </div>
       </div>
     </div>
@@ -483,14 +484,15 @@ let save = { igen:0, prologueDone:false, cleared:false, trueCleared:false, wins:
 /* difficulty. atk: added to every enemy card, win: chalk needed on the enemy pan */
 const DIFFS = {
   easy:  {n:"イージー", c:"#7ad890", atk:0, win:5, mult:1, sub:"これまで通りの授業(天秤5本で勝利)。初めての方に。"},
-  normal:{n:"ノーマル", c:"#e8c76a", atk:0, win:7, mult:1.2, sub:"勝利に必要なダメージ +2(天秤7本で勝利)。獲得威厳 ×1.2。"},
-  hard:  {n:"ハード",   c:"#e0604a", atk:1, win:7, mult:1.4, sub:"敵カードの攻撃 +1、さらに勝利に必要なダメージ +2(天秤7本)。獲得威厳 ×1.4。会長の先に裏ボスが待つ。"}
+  normal:{n:"ノーマル", c:"#e8c76a", atk:0, win:7, mult:1.2, sub:"天秤が7本で決着(勝利・敗北とも +2)。戦いが長くなる。獲得威厳 ×1.2。"},
+  hard:  {n:"ハード",   c:"#e0604a", atk:1, win:7, mult:1.4, sub:"敵カードの攻撃 +1、さらに天秤7本で決着。獲得威厳 ×1.4。会長の先に裏ボスが待つ。"}
 };
 const curDiff = () => DIFFS[(run && run.diff) || "easy"] || DIFFS.easy;
 /* the prologue (tutorial + the arrest) always plays the same */
 const diffOn = () => !!B && B.e.id !== "tutorial" && B.e.id !== "police";
 const diffAtk = () => diffOn() ? curDiff().atk : 0;
 const winNeed = () => diffOn() ? curDiff().win : 5;
+const loseNeed = winNeed;   /* the player's own pan holds the same number */
 function loadSave(){ try{ const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(s) save=Object.assign(save,s);}catch(e){} }
 function commitSave(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }catch(e){} }
 /* gains inside a run scale with the difficulty; spending never does. returns the amount actually applied */
@@ -2271,7 +2273,9 @@ const chair = (pr, X, Z, c = "#3a2a1a") => {
 };
 
 /* ---------- 1F: classroom at night ---------- */
-ART.bg.classroom = function(){
+/* variant "lesson": the prologue, years before the committee — a normal maths lesson on the board */
+ART.bg.lesson = () => ART.bg.classroom("lesson");
+ART.bg.classroom = function(variant){
   const P = ART.nid("G"), pr = cam(), o = [];
   const L = [1.1, -1, .35];
   o.push(`<defs>${ART.common(P)}
@@ -2297,11 +2301,25 @@ ART.bg.classroom = function(){
   o.push(`<path d="${Q(pr, [[-2.4, .82, ZF - .02], [2.4, .82, ZF - .02], [2.4, 2.25, ZF - .02], [-2.4, 2.25, ZF - .02]])}" fill="#3a2a1a"/>`);
   o.push(`<path d="${Q(pr, [[-2.32, .88, ZF - .03], [2.32, .88, ZF - .03], [2.32, 2.19, ZF - .03], [-2.32, 2.19, ZF - .03]])}" fill="url(#${P}board)"/>`);
   const bc = pr(0, 1.55, ZF);
-  o.push(`<g fill="#dfe4d6" font-family="sans-serif" opacity=".72"><text x="${f(bc[0])}" y="${f(bc[1] + 4)}" font-size="10.5" text-anchor="middle" letter-spacing="1">体罰 ダメ ゼッタイ</text>
-    <text x="${f(pr(-2.15, 2.05, ZF)[0])}" y="${f(pr(-2.15, 2.05, ZF)[1] + 4)}" font-size="4.6">本日 自習</text>
-    <text x="${f(pr(2.1, 1, ZF)[0])}" y="${f(pr(2.1, 1, ZF)[1] - 2)}" font-size="5" text-anchor="end" opacity=".7">― 体罰撲滅委員会</text></g>`);
-  const jx = pr(-1.2, 1.15, ZF);
-  o.push(`<text x="${f(jx[0])}" y="${f(jx[1])}" font-size="5.6" fill="#dfe4d6" opacity=".5" text-anchor="middle" font-family="sans-serif">2G JONES</text>`, ink([[[[jx[0] - 15, jx[1] - 6], [jx[0] + 15, jx[1] + 2]], 1.3, .6, .6], [[[jx[0] - 15, jx[1] + 2], [jx[0] + 15, jx[1] - 6]], 1.3, .6, .6]], "#e86a5a", .6));
+  if (variant === "lesson") {
+    const at = (x, y) => pr(x, y, ZF);
+    const tx = (x, y, t, sz, o2) => `<text x="${f(at(x, y)[0])}" y="${f(at(x, y)[1])}" font-size="${sz}"${o2 || ""}>${t}</text>`;
+    o.push(`<g fill="#dfe4d6" font-family="sans-serif" opacity=".78">
+      ${tx(-2.2, 2.07, "6月12日(水)", 4.2)}${tx(-2.2, 1.93, "三時限目 数学", 4.4)}
+      ${tx(-.55, 1.84, "連立方程式", 8.6, ' letter-spacing="1"')}
+      ${tx(-1.5, 1.42, "2x + y = 7", 7.4)}${tx(-1.5, 1.2, "x − y = 2", 7.4)}
+      ${tx(.85, 1.5, "→ 3x = 9", 7)}${tx(.85, 1.3, "x = 3 , y = 1", 7)}
+      ${tx(2.1, 2.03, "日直", 4.4, ' text-anchor="end"')}${tx(2.1, 1.86, "山田・佐藤", 4.4, ' text-anchor="end"')}
+      ${tx(2.1, 1, "寝るな!", 5.2, ' text-anchor="end" fill="#f0a090"')}</g>`);
+    const br = at(-1.62, 1.31);
+    o.push(`<path d="M${f(br[0] - 3)},${f(br[1] - 14)} q-5,9 0,18" stroke="#dfe4d6" stroke-width="1" fill="none" opacity=".7"/>`);
+  } else {
+    o.push(`<g fill="#dfe4d6" font-family="sans-serif" opacity=".72"><text x="${f(bc[0])}" y="${f(bc[1] + 4)}" font-size="10.5" text-anchor="middle" letter-spacing="1">体罰 ダメ ゼッタイ</text>
+      <text x="${f(pr(-2.15, 2.05, ZF)[0])}" y="${f(pr(-2.15, 2.05, ZF)[1] + 4)}" font-size="4.6">本日 自習</text>
+      <text x="${f(pr(2.1, 1, ZF)[0])}" y="${f(pr(2.1, 1, ZF)[1] - 2)}" font-size="5" text-anchor="end" opacity=".7">― 体罰撲滅委員会</text></g>`);
+    const jx = pr(-1.2, 1.15, ZF);
+    o.push(`<text x="${f(jx[0])}" y="${f(jx[1])}" font-size="5.6" fill="#dfe4d6" opacity=".5" text-anchor="middle" font-family="sans-serif">2G JONES</text>`, ink([[[[jx[0] - 15, jx[1] - 6], [jx[0] + 15, jx[1] + 2]], 1.3, .6, .6], [[[jx[0] - 15, jx[1] + 2], [jx[0] + 15, jx[1] - 6]], 1.3, .6, .6]], "#e86a5a", .6));
+  }
   o.push(`<ellipse cx="${f(bc[0] - 40)}" cy="${f(bc[1] - 6)}" rx="34" ry="8" fill="#dfe4d6" opacity=".06"/>`);
   o.push(`<path d="${Q(pr, [[-2.35, .82, ZF - .02], [2.35, .82, ZF - .02], [2.35, .78, ZF - .25], [-2.35, .78, ZF - .25]])}" fill="#2a1e12"/>`);
   const ck = pr(0, 2.55, ZF);
@@ -3229,7 +3247,7 @@ const PORTRAIT = {
   fukiA:"sil:fuki", mihariA:"sil:watcher", ptaB:"sil:pta", yutoB:"sil:yuto",
   shineiC:"sil:shinei", mikkokuC:"sil:mikkoku"
 };
-const SCENE_OF = e => e.ura ? "dojo" : (e.id === "tutorial" || e.id === "police") ? "classroom" : ["classroom","classroom","science","principal"][e.area] || "classroom";
+const SCENE_OF = e => e.ura ? "dojo" : (e.id === "tutorial" || e.id === "police") ? "lesson" : ["classroom","classroom","science","principal"][e.area] || "classroom";
 
 /* boss second phase (Inscryption-style: tip the scale twice) */
 Object.assign(ENEMIES.shunin,   {p2:{line:"「……まだ隠しているな。ポケットの裏地まで、全部だ」", special:"抜き打ち検査:2ターンごとに手札を没収"}});
@@ -3270,16 +3288,16 @@ function registerGrads(){
 
 /* ---------- stories ---------- */
 const ST_PROLOGUE = [
-  {bg:"scene:classroom", sp:"", tx:"――とある学校。\n三時限目。窓の外は薄曇り。", port:""},
-  {bg:"scene:classroom", sp:"2G JONES", tx:"「おい、そこ。今あくびをしたな」", port:"jones_young"},
-  {bg:"scene:classroom", sp:"2G JONES", tx:"「俺の授業で眠れるとは、いい度胸だ。\n……教育してやる」", port:"jones_young"},
-  {bg:"scene:classroom", sp:"", tx:"若き伝説の鬼教師、2G JONES。\nその教鞭は今日も唸る。\n\n(チュートリアル:カード戦闘の基本を学びましょう)", port:"jones_young"}
+  {bg:"scene:lesson", sp:"", tx:"――とある学校。\n三時限目。窓の外は薄曇り。", port:""},
+  {bg:"scene:lesson", sp:"2G JONES", tx:"「おい、そこ。今あくびをしたな」", port:"jones_young"},
+  {bg:"scene:lesson", sp:"2G JONES", tx:"「俺の授業で眠れるとは、いい度胸だ。\n……教育してやる」", port:"jones_young"},
+  {bg:"scene:lesson", sp:"", tx:"若き伝説の鬼教師、2G JONES。\nその教鞭は今日も唸る。\n\n(チュートリアル:カード戦闘の基本を学びましょう)", port:"jones_young"}
 ];
 const ST_POLICE = [
-  {bg:"scene:classroom", tint:"rgba(150,0,0,.35)", sp:"", tx:"授業が終わった、その時――\n教室の扉が、蹴破られた。", port:"sil:police"},
-  {bg:"scene:classroom", tint:"rgba(150,0,0,.35)", sp:"警察官", tx:"「2G JONES!! 体罰の現行犯で逮捕する!!」", port:"sil:police"},
-  {bg:"scene:classroom", tint:"rgba(150,0,0,.35)", sp:"2G JONES", tx:"「……ほう。俺の授業を邪魔するとは、\nいい度胸だ」", port:"jones_young"},
-  {bg:"scene:classroom", tint:"rgba(150,0,0,.35)", sp:"", tx:"※これはイベント戦闘です。\nどうあがいても勝てません。時代には、勝てません。", port:""}
+  {bg:"scene:lesson", tint:"rgba(150,0,0,.35)", sp:"", tx:"授業が終わった、その時――\n教室の扉が、蹴破られた。", port:"sil:police"},
+  {bg:"scene:lesson", tint:"rgba(150,0,0,.35)", sp:"警察官", tx:"「2G JONES!! 体罰の現行犯で逮捕する!!」", port:"sil:police"},
+  {bg:"scene:lesson", tint:"rgba(150,0,0,.35)", sp:"2G JONES", tx:"「……ほう。俺の授業を邪魔するとは、\nいい度胸だ」", port:"jones_young"},
+  {bg:"scene:lesson", tint:"rgba(150,0,0,.35)", sp:"", tx:"※これはイベント戦闘です。\nどうあがいても勝てません。時代には、勝てません。", port:""}
 ];
 const ST_ARREST = [
   {bg:"#000000", sp:"", tx:"「「現行犯逮捕ォォォ!!」」\n\n無数の手が、伝説の教師を押さえつけた。", port:"⛓"},
@@ -3408,8 +3426,8 @@ function chooseDraw(kind){
 
 function tutorialHint(){
   const hints = [
-    "【授業開始】手札のカードを光るマスへドラッグ(またはタップ→マス)。赤い封蝋がコスト(⚡気合)、下の数字は⚔攻撃力と♥体力。",
-    B.mustDraw ? "毎ターン、山札か『生徒の名札』(0コスト 0/1)のどちらかを1枚引く。名札は壁にも生贄にもなる。"
+    "【授業開始】手札のカードを光るマスへドラッグ(またはタップ→マス)。赤い封蝋は出すのに必要な⚡気合、下の数字は⚔攻撃力と♥体力。",
+    B.mustDraw ? "毎ターン、山札か『生徒の名札』(気合0 0/1)のどちらかを1枚引く。名札は壁にも生贄にもなる。"
                : "置いたら🔔でターン終了。正面の敵を攻撃し、いなければ相手本体へダメージ!",
     "一番奥の薄い列は『予告』。次のターンに敵がそこから前へ出てくる。先回りして構えろ。",
     "本体へのダメージは天秤の『敵』側にチョークとして乗る。" + winNeed() + "本で勝利。カードは長押しで詳細が見られる。"
@@ -3604,7 +3622,7 @@ function renderHud(){
 
 function renderScale(){
   const s = B.scale, W = winNeed();
-  const ang = -(s > 0 ? s / W : s / 5) * 22.5;
+  const ang = -(s > 0 ? s / W : s / loseNeed()) * 22.5;
   const rad = ang * Math.PI / 180;
   document.querySelector("#b-scale .beam").style.transform = `rotate(${ang}deg)`;
   $("pan-e").style.top = (4 - 67 * Math.sin(rad)) + "px";
@@ -3613,12 +3631,12 @@ function renderScale(){
   const prev = B.chalk;
   const POS5 = [[8,9],[19,9],[30,9],[13,13],[25,13]], POS7 = [[3,9],[13,9],[23,9],[33,9],[8,13],[18,13],[28,13]];
   $("pan-e").querySelector(".lb").textContent = "敵 " + Math.max(0, s) + "/" + W;
-  $("pan-p").querySelector(".lb").textContent = "自分 " + Math.max(0, -s) + "/5";
+  $("pan-p").querySelector(".lb").textContent = "自分 " + Math.max(0, -s) + "/" + loseNeed();
   for (const [pan, sd] of [["pan-e", 1], ["pan-p", -1]]) {
     const el = $(pan);
     el.querySelectorAll(".chalk").forEach(c => c.remove());
     if (side !== sd) continue;
-    const pos = sd > 0 && W > 5 ? POS7 : POS5;
+    const pos = (sd > 0 ? W : loseNeed()) > 5 ? POS7 : POS5;
     for (let i = 0; i < Math.min(n, pos.length); i++) {
       const c = document.createElement("div");
       c.className = "chalk" + ((prev.side !== sd || i >= prev.n) ? " drop" : "");
@@ -3660,7 +3678,7 @@ function showCardDetail(cid){
   const c = CARDS[cid]; if (!c) return;
   const up = c.up || 0;
   openDetail(cardEl(cid, "big"), `<h3>${esc(c.n)}${up ? " +" + up : ""}</h3>
-    <div>コスト ⚡${c.cost} ${c.kind === "u" ? `/ ⚔${c.atk} ♥${c.hp}` : "/ 呪文"}${up ? ` <span style="color:#7ad890">(強化済み)</span>` : ""} ${c.tb ? "/ <span style='color:#e06050'>体罰カード</span>" : "/ 補助カード"}</div>
+    <div>気合 ⚡${c.cost} ${c.kind === "u" ? `/ ⚔${c.atk} ♥${c.hp}` : "/ 呪文"}${up ? ` <span style="color:#7ad890">(強化済み)</span>` : ""} ${c.tb ? "/ <span style='color:#e06050'>体罰カード</span>" : "/ 補助カード"}</div>
     ${c.desc ? `<div>${esc(c.desc)}</div>` : ""}${abHtml(c.ab)}<div class="fl">${esc(c.fl || "")}</div>`);
 }
 function showUnitDetail(u){
@@ -3929,7 +3947,7 @@ async function killUnit(t){
   renderBattle();
 }
 
-function tiltScale(n){ B.scale = Math.max(-5, Math.min(winNeed(), B.scale + n)); }
+function tiltScale(n){ B.scale = Math.max(-loseNeed(), Math.min(winNeed(), B.scale + n)); }
 
 async function faceDamage(attacker, dmg){
   if (!B || dmg <= 0) return;
@@ -4126,7 +4144,7 @@ function checkEnd(){
     if (B.e.p2 && B.phase === 1) { B.halt = true; return true; }
     B.over = true; setTimeout(winBattle, 400); return true;
   }
-  if (B.scale <= -5) { B.over = true; setTimeout(loseBattle, 400); return true; }
+  if (B.scale <= -loseNeed()) { B.over = true; setTimeout(loseBattle, 400); return true; }
   return false;
 }
 
@@ -4279,6 +4297,7 @@ function continueRun(){
   /* older saves upgraded a whole card type: turn that into per-card copies */
   if (run.upgrades) { run.deck = run.deck.map(c => run.upgrades[c] ? c + "+" + run.upgrades[c] : c); delete run.upgrades; }
   run.deck.forEach(ensureCard);
+  run.deck = run.deck.filter(c => CARDS[c]);
   updateTopbar(); renderMap(); showScreen("screen-map");
 }
 
@@ -4668,7 +4687,7 @@ function runOver(){
     pickN(pool, 3).forEach(cid => $("choice-cards").appendChild(pickableCard(cid, () => { apply(CARDS[cid]); next(); })));
   };
   const abPool = units.filter(c => (CARDS[c].ab || []).length);
-  step("🎓 卒業生カード ①", "最後のろうそくが消えた。\n教え子たちが、次の世代に想いを託す。\n\nまず「コスト」を受け継ぐカードを選べ。", units, c => { g.cost = c.cost; }, () =>
+  step("🎓 卒業生カード ①", "最後のろうそくが消えた。\n教え子たちが、次の世代に想いを託す。\n\nまず「必要な気合」を受け継ぐカードを選べ。", units, c => { g.cost = c.cost; }, () =>
     step("🎓 卒業生カード ②", "次に「攻撃力と体力」を受け継ぐカードを選べ。", units, c => { g.atk = c.atk; g.hp = c.hp; g.tb = c.tb; }, () => {
       const finish = () => nameGrad(g);
       if (!abPool.length) { g.ab = []; finish(); return; }
@@ -4684,6 +4703,7 @@ function nameGrad(g){
   $("choice-cards").appendChild(cardEl(id, "big"));
   $("choice-extra").innerHTML = `<input id="grad-name" maxlength="10" value="${esc(def)}">`;
   $("grad-name").oninput = () => { const nm = document.querySelector("#choice-cards .pc .nm"); if (nm) nm.textContent = $("grad-name").value || def; };
+  choiceButton("卒業させない<small>このカードは名簿に残さない。</small>", () => { delete CARDS[id]; finishRunOver(null); });
   choiceButton("卒業させる<small>(名前は10文字まで)</small>", () => {
     const n = ($("grad-name").value || def).trim().slice(0, 10) || def;
     const rec = {id, n, cost:g.cost, atk:g.atk, hp:g.hp, ab:g.ab || [], tb:g.tb ? 1 : 0};
@@ -4693,6 +4713,27 @@ function nameGrad(g){
     registerGrads();
     finishRunOver(rec);
   });
+}
+/* 卒業生名簿: graduates show up in rewards and shops; the player can strike them off */
+function openGrads(){
+  choiceScreen("🎓 卒業生名簿", "卒業生カードは、報酬やショップに現れる。\nタップした卒業生を名簿から外す(元には戻せない)。");
+  for (const g of (save.grads || [])) {
+    if (!CARDS[g.id]) continue;
+    const el = cardEl(g.id, "mid");
+    el.onclick = () => { if (confirm("『" + g.n + "』を卒業生名簿から外しますか?")) removeGrad(g.id); };
+    $("choice-cards").appendChild(el);
+  }
+  if (!(save.grads || []).length) $("choice-desc").textContent = "名簿は空だ。";
+  choiceButton("タイトルへ戻る", () => toTitle());
+}
+function removeGrad(id){
+  save.grads = (save.grads || []).filter(g => g.id !== id);
+  commitSave();
+  for (const pool of [REWARD_POOL, ELITE_POOL]) { const k = pool.indexOf(id); if (k >= 0) pool.splice(k, 1); }
+  delete CARDS[id];
+  const r = loadRun();
+  if (r) { r.deck = r.deck.filter(c => c !== id && !c.startsWith(id + "+")); try { localStorage.setItem(RUN_KEY, JSON.stringify(r)); } catch (e) {} }
+  openGrads();
 }
 function finishRunOver(rec){
   clearRun();
@@ -4785,6 +4826,7 @@ function toTitle(){
   $("btn-continue").style.display = saved ? "block" : "none";
   if (saved) $("btn-continue").innerHTML = `続きから(${esc(AREAS[saved.area - 1].name.split(" ")[0])}・${ART.ui("candle")}×${saved.candles}・${(DIFFS[saved.diff] || DIFFS.easy).n})`;
   $("btn-skip").style.display = save.prologueDone ? "block" : "none";
+  $("btn-grads").style.display = (save.grads || []).length ? "block" : "none";
   $("btn-start").textContent = save.prologueDone ? "はじめから(プロローグを見る)" : "はじめから";
   let sub = "所持している威厳 ─ " + save.igen;
   if ((save.grads || []).length) sub += "\n卒業生カード ─ " + save.grads.map(g => g.n).join("、");
