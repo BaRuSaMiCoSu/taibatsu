@@ -485,9 +485,14 @@ let save = { igen:0, prologueDone:false, cleared:false, trueCleared:false, wins:
 const DIFFS = {
   easy:  {n:"イージー", c:"#7ad890", atk:0, win:5, mult:1, sub:"これまで通りの授業(天秤5本で勝利)。初めての方に。"},
   normal:{n:"ノーマル", c:"#e8c76a", atk:0, win:7, mult:1.2, sub:"天秤が7本で決着(勝利・敗北とも +2)。戦いが長くなる。獲得威厳 ×1.2。"},
+  hardcore:{n:"ハードコア", c:"#ff3a5a", atk:1, win:7, mult:2, life:1, sub:"ハードと同じ条件(裏ボスあり)で、ろうそくは1本だけ。一度負けたらランは終わり。獲得威厳 ×2。"},
   hard:  {n:"ハード",   c:"#e0604a", atk:1, win:7, mult:1.4, sub:"敵カードの攻撃 +1、さらに天秤7本で決着。獲得威厳 ×1.4。会長の先に裏ボスが待つ。"}
 };
 const curDiff = () => DIFFS[(run && run.diff) || "easy"] || DIFFS.easy;
+const maxCandles = () => curDiff().life || 2;
+/* ハードコア plays by the Hard rules (裏ボス included) */
+const hardRules = () => !!run && (run.diff === "hard" || run.diff === "hardcore");
+const HARDCORE_PRICE = 5000;
 /* the prologue (tutorial + the arrest) always plays the same */
 const diffOn = () => !!B && B.e.id !== "tutorial" && B.e.id !== "police";
 const diffAtk = () => diffOn() ? curDiff().atk : 0;
@@ -3364,6 +3369,8 @@ function newEUnit(eid, bonusAtk, bonusHp){
 function startBattle(enemyId, opts){
   opts = opts || {};
   const e = ENEMIES[enemyId];
+  /* ハードコア: leaving mid-battle counts as losing it */
+  if (run && !run.prologue && run.diff === "hardcore") { run.fighting = true; saveRun(); }
   B = { e, opts, over:false, busy:true, halt:false,
         p:[null,null,null,null], en:[null,null,null,null], q:[null,null,null,null],
         deck:shuffle(run.deck.slice()), hand:[], discard:[],
@@ -4175,15 +4182,16 @@ async function policeArrest(){
 
 async function winBattle(){
   const e = B.e, opts = B.opts;
+  if (run && run.fighting) { run.fighting = false; saveRun(); }
   await banner("勝 利", e.boss ? "「これが、俺の授業だ」" : "「次の授業も、覚悟しておけ」", false, 1500);
   B = null;
   const gained = addIgen(e.igen || 20);
   if (opts.onWin) { opts.onWin(gained); return; }
   if (e.id === "tutorial") { playStory(ST_POLICE, () => startBattle("police")); return; }
   if (e.id === "kaicho") {
-    save.cleared = true; save.wins++; if (run.diff === "hard") save.hardCleared = true; commitSave();
+    save.cleared = true; save.wins++; if (hardRules()) save.hardCleared = true; if (run.diff === "hardcore") save.hardcoreCleared = true; commitSave();
     /* the dojo and ひろし only open after a Hard-mode win */
-    if (run.diff === "hard") playStory(ST_ENDING, () => { run.bossDone = true; saveRun(); renderMap(); showScreen("screen-map"); });
+    if (hardRules()) playStory(ST_ENDING, () => { run.bossDone = true; saveRun(); renderMap(); showScreen("screen-map"); });
     else playStory(ST_ENDING.slice(0, -1), () => homecoming("委員会は去り、学校は静けさを取り戻した。\n2G JONESの授業は、明日も続く。\n\n(……ハードモードで会長を倒した者だけが、\n剣道場の竹刀の音を聞くという)"));
     return;
   }
@@ -4214,7 +4222,7 @@ async function loseBattle(){
     await banner("敗 北", "ろうそくが一本、消えた……\n(残り " + "🕯".repeat(run.candles) + ")\n\nだが、まだ授業は終わらない。再戦だ。", true, 2400);
     startBattle(e.id, opts);
   } else {
-    await banner("敗 北", "最後のろうそくが、消えた。", true, 2000);
+    await banner("敗 北", run.diff === "hardcore" ? "ハードコアに二度目はない。\nたった一本のろうそくが、消えた。" : "最後のろうそくが、消えた。", true, 2000);
     runOver();
   }
 }
@@ -4278,6 +4286,7 @@ function itemText(key){
 function newRun(prologue){
   run = { deck:STARTER_DECK.concat(!prologue && save.legend ? ["legend"] : []), candles:2, area:1, step:0, map:genArea(1), usedEvents:[], diff:DIFFS[save.diff] ? save.diff : "easy",
           bossDone:false, items:prologue ? [] : [rnd(["akapen", "shussekibo"])], prologue:!!prologue };
+  run.candles = maxCandles();
 }
 function beginRun(){
   newRun(false);
@@ -4298,6 +4307,11 @@ function continueRun(){
   if (run.upgrades) { run.deck = run.deck.map(c => run.upgrades[c] ? c + "+" + run.upgrades[c] : c); delete run.upgrades; }
   run.deck.forEach(ensureCard);
   run.deck = run.deck.filter(c => CARDS[c]);
+  if (run.fighting && run.diff === "hardcore") {
+    run.fighting = false; run.candles = 0; updateTopbar();
+    banner("敗 北", "ハードコアに逃げ道はない。\n授業を放り出した教師に、ろうそくは灯らない。", true, 2400).then(() => runOver());
+    return;
+  }
   updateTopbar(); renderMap(); showScreen("screen-map");
 }
 
@@ -4308,7 +4322,7 @@ function renderMap(){
   const cor = $("map-corridor");
   cor.innerHTML = "";
   const steps = run.map.slice();
-  if (run.bossDone) steps.push({nodes:run.diff === "hard" ? [mkNode("dojo", 3), mkNode("home", 3)] : [mkNode("home", 3)], done:false, dojoStep:true});
+  if (run.bossDone) steps.push({nodes:hardRules() ? [mkNode("dojo", 3), mkNode("home", 3)] : [mkNode("home", 3)], done:false, dojoStep:true});
   steps.forEach((st, si) => {
     const row = document.createElement("div");
     row.className = "map-step" + (st.nodes.length > 1 ? " fork" : "");
@@ -4449,7 +4463,7 @@ function openShop(){
     {kind:"manual", price:45, sold:false},
     {kind:"remove", price:30, sold:false},
     {kind:"candle", price:50, sold:false}
-  ].concat(save.legend ? [] : [{kind:"legend", price:LEGEND_PRICE, sold:false}])};
+  ].concat(save.legend ? [] : [{kind:"legend", price:LEGEND_PRICE, sold:false}]).concat(save.hardcore ? [] : [{kind:"hardcore", price:HARDCORE_PRICE, sold:false}])};
   if (!$("shop-face").innerHTML) $("shop-face").innerHTML = ART.boss.obachan();
   typeText($("shop-quote"), rnd(SHOP_QUOTES), 30);
   renderShop();
@@ -4466,11 +4480,12 @@ function renderShop(){
     if (it.kind === "manual") { icon = ART.inkSVG("s_manual"); name = "絶版の生徒指導マニュアル"; desc = "デッキのカード1枚をこのラン中 +1/+1 に強化する。"; }
     if (it.kind === "remove") { icon = ART.inkSVG("s_remove"); name = "カード除去サービス"; desc = "デッキから不要なカードを1枚、シュレッダーにかける。"; }
     if (it.kind === "candle") { icon = ART.inkSVG("s_candle"); name = "赤い蝋燭"; desc = "消えたろうそくを灯し直す(残機全回復)。"; }
+    if (it.kind === "hardcore") { icon = ART.ui("oni"); name = "ハードコアモードの解放(永久)"; desc = "ハードと同じ条件、ろうそく1本で一度負けたら終わり。獲得威厳 ×2。次のランから難易度選択に現れる。"; d.classList.add("legend"); }
     if (it.kind === "legend") { icon = cardArt("legend"); name = "伝説の教鞭(永久)"; desc = "⚔3/♥4 ◆連撃 ◆貫通。一度買えば、以後すべてのランの初期デッキに入る。"; d.classList.add("legend"); }
     d.innerHTML = `<div class="si-icon">${icon}</div><div class="si-body"><div class="si-name">${esc(name)}</div><div class="si-desc">${esc(desc)}</div></div>`;
     const btn = document.createElement("button");
     btn.className = "si-buy"; btn.textContent = "威厳 " + it.price;
-    btn.disabled = it.sold || save.igen < it.price || (it.kind === "candle" && run.candles >= 2)
+    btn.disabled = it.sold || save.igen < it.price || (it.kind === "candle" && run.candles >= maxCandles())
       || (it.kind === "remove" && run.deck.length <= 6) || (it.kind === "item" && run.items.length >= 3);
     btn.onclick = () => buyItem(i);
     d.appendChild(btn);
@@ -4485,12 +4500,17 @@ function buyItem(i){
   const q = t => typeText($("shop-quote"), t, 30);
   if (it.kind === "card") { addIgen(-it.price); it.sold = true; run.deck.push(it.cid); saveRun(); q("「まいどあり。大事に使いなよ」"); renderShop(); }
   else if (it.kind === "item") { if (!grantItem(it.key)) return; addIgen(-it.price); it.sold = true; q("「それ、先生が昔没収したやつだよ。……覚えてないかい?」"); renderShop(); }
+  else if (it.kind === "hardcore") {
+    if (!confirm("威厳 " + it.price + " を払って『ハードコアモード』を解放しますか?\n(次に始めるランから選べるようになります)")) return;
+    addIgen(-it.price); it.sold = true; save.hardcore = true; commitSave();
+    q("「本気かい。……一度きりの授業ってのも、悪くないねぇ」"); renderShop();
+  }
   else if (it.kind === "legend") {
     if (!confirm("威厳 " + it.price + " を払って『伝説の教鞭』を手に入れますか?\n(以後すべてのランで初期デッキに入ります)")) return;
     addIgen(-it.price); it.sold = true; save.legend = true; commitSave(); run.deck.push("legend"); saveRun();
     q("「……ついに、これを渡す日が来たかい。あんたのだよ、最初から」"); renderShop();
   }
-  else if (it.kind === "candle") { addIgen(-it.price); it.sold = true; run.candles = 2; saveRun(); q("「火の始末にゃ、気をつけな」"); renderShop(); updateTopbar(); }
+  else if (it.kind === "candle") { addIgen(-it.price); it.sold = true; run.candles = maxCandles(); saveRun(); q("「火の始末にゃ、気をつけな」"); renderShop(); updateTopbar(); }
   else if (it.kind === "manual") {
     pickFromDeck("📔 生徒指導マニュアル", "強化するカードを1枚選べ(+1/+1)。", cid => CARDS[cid].kind === "u" && cid !== "nafuda",
       (cid, idx) => { if (cid && idx >= 0) { addIgen(-it.price); it.sold = true; upgradeAt(idx); } renderShop(); showScreen("screen-shop"); });
@@ -4509,7 +4529,7 @@ const EVENTS = [
     tx:"非常階段の踊り場で、生徒がひとり泣いている。\n「先生……ぼく、もう学校やめたい……」",
     choices:[
       {label:"そっと慰める", sub:"ろうそくを1本灯し直す(満タンなら威厳+15)",
-        fn:()=>{ if(run.candles<2){run.candles++; return "生徒は少し笑った。\n……胸の奥のろうそくに、火が灯る。(ろうそく回復)";} addIgen(15); return "生徒は少し笑った。\n「先生、変わってないね」(威厳+15)"; }},
+        fn:()=>{ if(run.candles<maxCandles()){run.candles++; return "生徒は少し笑った。\n……胸の奥のろうそくに、火が灯る。(ろうそく回復)";} addIgen(15); return "生徒は少し笑った。\n「先生、変わってないね」(威厳+15)"; }},
       {label:"喝を入れる", sub:"ランダムなカードを獲得。ただし『モンペの電話』も混入",
         fn:()=>{ const c=rnd(REWARD_POOL); run.deck.push(c); run.deck.push("curse");
           return "「やめてどうする!! 走れ!!」\n生徒は泣きながら走り出し、何かを落としていった。\n(『"+CARDS[c].n+"』を獲得。……その夜、保護者から着信が。『モンペの電話』がデッキに混入)"; }}
@@ -4527,7 +4547,7 @@ const EVENTS = [
     choices:[
       {label:"少し眠る", sub:"ろうそく回復。ただし低確率で『ヌシ』が現れる…",
         fn:()=>{ if(Math.random()<0.12) return "fight_nushi";
-          run.candles=2; return "夢も見ずに眠った。目覚めると、枕元に\n『おだいじに』と書かれたメモ。(ろうそく全回復)"; }},
+          run.candles=maxCandles(); return "夢も見ずに眠った。目覚めると、枕元に\n『おだいじに』と書かれたメモ。(ろうそく全回復)"; }},
       {label:"何かがいる気がする。立ち去る", sub:"何も起こらない",
         fn:()=>"カーテンの奥で、何かが身じろぎした気がした。\n……関わらないのが正解だ。"}
     ]},
@@ -4588,7 +4608,7 @@ const EVENTS = [
       {label:"連れて行く", sub:"『忠犬ポチ公』を獲得",
         fn:()=>{ run.deck.push("pochi"); return "「……行くぞ、ポチ公。最後の授業だ」\nワン!!\n(『忠犬ポチ公』を獲得)"; }},
       {label:"頭を撫でるだけにする", sub:"ろうそく1本回復",
-        fn:()=>{ if(run.candles<2) run.candles++; return "ざらざらの毛並み。変わらない体温。\n少しだけ、心が軽くなった。(ろうそく回復)"; }}
+        fn:()=>{ if(run.candles<maxCandles()) run.candles++; return "ざらざらの毛並み。変わらない体温。\n少しだけ、心が軽くなった。(ろうそく回復)"; }}
     ]}
 ];
 
@@ -4679,6 +4699,7 @@ function startEventFight(eid){
    RUN OVER → 卒業生カード (death card)
    ========================================================= */
 function runOver(){
+  clearRun();   /* the run is over the moment the last candle goes out — a reload must not bring it back */
   const units = [...new Set(run.deck.filter(c => CARDS[c].kind === "u" && c !== "nafuda"))];
   if (units.length < 1) { finishRunOver(null); return; }
   const g = {};
@@ -4808,7 +4829,7 @@ function closeDeck(){ $("overlay-deck").classList.remove("show"); }
 
 function updateTopbar(){
   $("tb-igen").textContent = "威厳 " + save.igen;
-  $("tb-candles").innerHTML = run && !run.prologue ? `<span class="candle-lit">${ART.ui("candle")}</span>`.repeat(run.candles) + `<span class="candle-out">${ART.ui("candleOut")}</span>`.repeat(Math.max(0, 2 - run.candles)) : "";
+  $("tb-candles").innerHTML = run && !run.prologue ? `<span class="candle-lit">${ART.ui("candle")}</span>`.repeat(run.candles) + `<span class="candle-out">${ART.ui("candleOut")}</span>`.repeat(Math.max(0, maxCandles() - run.candles)) : "";
   $("tb-items").innerHTML = run && run.items ? run.items.map(k => `<span class="tbi">${itemArt(k)}</span>`).join("") : "";
   $("tb-area").textContent = run && !run.prologue ? AREAS[run.area - 1].name + (B ? " ─ 戦闘中" : "") : (B ? "プロローグ" : "");
 }
@@ -4831,6 +4852,8 @@ function toTitle(){
   let sub = "所持している威厳 ─ " + save.igen;
   if ((save.grads || []).length) sub += "\n卒業生カード ─ " + save.grads.map(g => g.n).join("、");
   if (save.legend) sub += "\n【伝説の教鞭 所持】";
+  if (save.hardcoreCleared) sub += "\n【ハードコア制覇】";
+  else if (save.hardcore) sub += "\n【ハードコア解放済】";
   if (save.trueCleared) sub += "\n【本能の力の真の継承者】";
   else if (save.cleared) sub += "\n【委員会撃破済】" + (save.hardCleared ? "剣道場が待つ" : "\n(ハードで会長を倒すと、剣道場への道が開く)");
   $("title-igen").textContent = sub;
@@ -4844,8 +4867,12 @@ function titleStart(skip){
 }
 function pickDifficulty(cb){
   choiceScreen("難易度を選べ", "選んだ難易度はこのランの間ずっと続く。\n(プロローグの授業と逮捕イベントは共通)");
-  for (const k of ["easy", "normal", "hard"]) {
+  for (const k of ["easy", "normal", "hard", "hardcore"]) {
     const d = DIFFS[k];
+    if (k === "hardcore" && !save.hardcore) {
+      const b = choiceButton(`<span style="color:#7a5a62">ハードコア(未解放)</span><small>購買部で威厳 ${HARDCORE_PRICE} を払うと挑戦できる。</small>`, () => {});
+      b.disabled = true; continue;
+    }
     const b = choiceButton(`<span style="color:${d.c}">${d.n}</span>${save.diff === k ? " ◂ 前回" : ""}<small>${esc(d.sub)}</small>`, () => { save.diff = k; commitSave(); cb(); });
     if (save.diff === k) b.classList.add("hl");
   }
