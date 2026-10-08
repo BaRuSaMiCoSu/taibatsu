@@ -163,7 +163,7 @@ svg{display:block}
   background:radial-gradient(ellipse at 50% 45%,rgba(255,252,240,.65),rgba(255,252,240,0) 74%);border:1px solid rgba(70,48,24,.32);box-shadow:inset 0 0 6px rgba(90,60,20,.22)}
 .pc .art svg{width:100%;height:100%;display:block}
 .pc.en .art,.pc.conv .art{background:radial-gradient(ellipse at 50% 45%,rgba(250,246,255,.55),rgba(250,246,255,0) 74%)}
-.pc .sig{font-size:7.5px;color:#6a3a20;line-height:1.15;margin-top:1px;text-align:center;max-height:18px;overflow:hidden}
+.pc .sig{font-size:7.5px;color:#6a3a20;line-height:1.15;margin-top:1px;text-align:center;max-height:18px;overflow:hidden;word-break:keep-all}
 .pc .st{width:100%;display:flex;justify-content:space-between;font-size:12px;font-weight:bold;padding:0 3px;line-height:1.15}
 .pc .st .a::before{content:"⚔\FE0E";font-size:8px;margin-right:1px;color:#8a3a20}
 .pc .st .h::before{content:"♥\FE0E";font-size:8px;margin-right:1px;color:#8a2030}
@@ -513,7 +513,7 @@ const igenLabel = t => String(t).replace(/威厳\+(\d+)/g, (m, d) => "威厳+" +
 const AB_TEXT = {
   haste:"速攻", sweep:"薙ぎ払い", snipe:"狙撃", double:"連撃",
   counter:"返り討ち", rally:"連帯", energize:"学級運営", trample:"貫通", guard:"忖度",
-  fighter:"闘魂", feral:"血脈", pack:"組立", buddy:"相棒", legacy:"形見"
+  fighter:"闘魂", feral:"血脈", pack:"組立", buddy:"相棒", legacy:"形見", unbowed:"不屈"
 };
 const AB_DESC = {
   haste:"出したターンに即攻撃", sweep:"正面と両隣のレーンを攻撃", snipe:"最も体力の低い敵を狙う",
@@ -521,7 +521,8 @@ const AB_DESC = {
   energize:"毎ターン気合+1", trample:"余剰ダメージを相手本体へ", guard:"本体への攻撃を肩代わりする",
   fighter:"味方が倒れるたび攻撃+1", feral:"本能の力を使うたび追加で攻撃+1",
   pack:"攻撃時、隣の味方1体につき攻撃+1", buddy:"場に出た時、同じカードを手札に加える",
-  legacy:"破壊された時、カードを1枚引く"
+  legacy:"破壊された時、カードを1枚引く",
+  unbowed:"相手の妨害を一切受けない(行動不能・攻撃無効化・寝返り・没収・処分・指導記録)"
 };
 
 /* ---------- player cards ----------
@@ -3281,7 +3282,7 @@ function upgradeAt(idx){
   run.deck[idx] = id; saveRun();
   return id;
 }
-CARDS.legend = {id:"legend", n:"伝説の教鞭", cost:2, kind:"u", tb:1, atk:3, hp:4, ab:["double", "trample"], icon:"🪄", r:3, legend:1,
+CARDS.legend = {id:"legend", n:"伝説の教鞭", cost:1, kind:"u", tb:1, atk:4, hp:4, ab:["double", "trample", "unbowed"], icon:"🪄", r:3, legend:1,
   fl:"三十年、一度も折れなかった。……持ち主の心と同じように。"};
 function registerGrads(){
   for (const g of (save.grads || [])) {
@@ -3503,7 +3504,7 @@ function banner(main, sub, red, dur){
 const cardArt = cid => { const b = baseOf(cid); return ART.inkSVG(b.startsWith("grad_") ? "grad" : b) || (CARDS[cid] ? CARDS[cid].icon : ""); };
 const unitArt = u => ART.inkSVG(u.conv ? "seito" : baseOf(u.cid).startsWith("grad_") ? "grad" : baseOf(u.cid)) || u.icon;
 const itemArt = k => ART.inkSVG("i_" + k) || ITEMS[k].icon;
-function sigText(ab){ return (ab || []).map(a => "◆" + AB_TEXT[a]).join(" "); }
+function sigText(ab){ return (ab || []).map(a => "◆\u2060" + AB_TEXT[a]).join(" "); }   /* word joiner keeps ◆ on the same line as the name */
 function cardEl(cid, size){
   const c = CARDS[cid], up = c.up || 0;
   const d = document.createElement("div");
@@ -3875,8 +3876,10 @@ async function castSpell(idx, side, lane){
   await afterAction();
 }
 
+/* 不屈: enemy disruption (stun, nullify, conversion, confiscation, sanctions) passes this card by */
+const unbowed = u => !!u && (u.ab || []).includes("unbowed");
 function onPlayerCardPlayed(c){
-  if (B.e.id === "kaicho" && c.tb && B.instinct < 3) { B.ctRecord++; fpop($("b-scene"), "📋 指導記録 +1", "#e07060"); }
+  if (B.e.id === "kaicho" && c.tb && !unbowed(c) && B.instinct < 3) { B.ctRecord++; fpop($("b-scene"), "📋 指導記録 +1", "#e07060"); }
 }
 
 /* ---------- items ---------- */
@@ -3973,7 +3976,7 @@ async function faceDamage(attacker, dmg){
 }
 
 function tryNullify(u){
-  if (u.enemy) return false;
+  if (u.enemy || unbowed(u)) return false;
   if (B.e.id === "police" && Math.random() < 0.9) return "「公務執行妨害だ」…無効化された!";
   if (B.e.id === "kaicho" && u.tb && B.instinct < 3 && Math.random() < (B.phase === 2 ? 0.5 : 0.35)) return "会長「記録済みだ」…攻撃が無効化された!";
   return false;
@@ -4048,7 +4051,7 @@ async function enemyTurn(){
   if (e.id === "counselor") {
     B.ctConvert++;
     if (B.ctConvert % (B.phase === 2 ? 2 : 3) === 0) {
-      const cands = []; B.p.forEach((u, i) => { if (u && u.tb) cands.push(i); });
+      const cands = []; B.p.forEach((u, i) => { if (u && u.tb && !unbowed(u)) cands.push(i); });
       const freeE = [0,1,2,3].filter(i => !B.en[i]), freeQ = [0,1,2,3].filter(i => !B.q[i]);
       if (cands.length && (freeE.length || freeQ.length)) {
         cands.sort((a, b) => B.p[b].atk - B.p[a].atk);
@@ -4074,7 +4077,7 @@ async function enemyTurn(){
   if (e.id === "kaicho") {
     B.ctHide++;
     if (B.ctHide % 2 === 0 && B.en.some(u => u && u.cid === "kocho")) {
-      const cands = B.p.filter(u => u);
+      const cands = B.p.filter(u => u && !unbowed(u));
       if (cands.length) {
         const u = rnd(cands);
         u.stun = Math.max(u.stun, 1);
@@ -4088,7 +4091,7 @@ async function enemyTurn(){
       B.ctRecord = 0;
       await banner("委員会の制裁", "「指導記録3件。……処分を執行する」", true, 1300);
       let best = null;
-      for (const u of B.p) if (u && (!best || u.atk > best.atk)) best = u;
+      for (const u of B.p) if (u && !unbowed(u) && (!best || u.atk > best.atk)) best = u;
       if (best) { fpop(uSlot(best), "処分執行!", "#ff5040"); await killUnit(best); }
       await faceDamage({enemy:true}, 2);
       if (stopped()) return;
@@ -4137,7 +4140,9 @@ async function spawnQueue(t, anim){
 
 function stealHand(t){
   if (!B || B.hand.length === 0) return;
-  const i = Math.floor(Math.random() * B.hand.length);
+  const pool = B.hand.map((c, k) => k).filter(k => !unbowed(CARDS[B.hand[k]]));
+  if (!pool.length) { bubble("主任「……その教鞭だけは、取り上げられん」"); renderBattle(); return; }
+  const i = rnd(pool);
   const cid = B.hand.splice(i, 1)[0];
   bubble(t);
   fpop($("b-hand"), "没収! ─ " + CARDS[cid].n, "#ff5040");
@@ -4481,7 +4486,7 @@ function renderShop(){
     if (it.kind === "remove") { icon = ART.inkSVG("s_remove"); name = "カード除去サービス"; desc = "デッキから不要なカードを1枚、シュレッダーにかける。"; }
     if (it.kind === "candle") { icon = ART.inkSVG("s_candle"); name = "赤い蝋燭"; desc = "消えたろうそくを灯し直す(残機全回復)。"; }
     if (it.kind === "hardcore") { icon = ART.ui("oni"); name = "ハードコアモードの解放(永久)"; desc = "ハードと同じ条件、ろうそく1本で一度負けたら終わり。獲得威厳 ×2。次のランから難易度選択に現れる。"; d.classList.add("legend"); }
-    if (it.kind === "legend") { icon = cardArt("legend"); name = "伝説の教鞭(永久)"; desc = "⚔3/♥4 ◆連撃 ◆貫通。一度買えば、以後すべてのランの初期デッキに入る。"; d.classList.add("legend"); }
+    if (it.kind === "legend") { icon = cardArt("legend"); name = "伝説の教鞭(永久)"; desc = "気合1 ⚔4/♥4 ◆連撃 ◆貫通 ◆不屈(相手の妨害を受けない)。一度買えば、以後すべてのランの初期デッキに入る。"; d.classList.add("legend"); }
     d.innerHTML = `<div class="si-icon">${icon}</div><div class="si-body"><div class="si-name">${esc(name)}</div><div class="si-desc">${esc(desc)}</div></div>`;
     const btn = document.createElement("button");
     btn.className = "si-buy"; btn.textContent = "威厳 " + it.price;
